@@ -17,25 +17,27 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-8 offset-2"
-             style="margin-top: 5vh; border: thin solid grey; border-radius: 5px; background: rgba(221,221,221,0.45)">
-
-            <!-- header -->
-            <div class="row justify-content-center" style="height: 15vh">
-                <div class="align-self-center">
-                    <h2>Number of pedestrian-involved collisions and corresponding pedestrian actions</h2>
+    <header class="site-header border-bottom">
+    <div class="container-lg py-4">
+        <h1 class="h3 mb-2">Number of pedestrian-involved collisions and corresponding pedestrian actions</h1>
+        <a href="https://data.torontopolice.on.ca/datasets/0a1ee9d9436546dcbdc0ee9301e45e83_0/explore?location=3.764176%2C-79.381430%2C0.00&showTable=true" target="_blank" class="text-decoration-none"> 
+            <p> Toronto collisions dataset </p>
+        </a>
+    </div>
+  </header>
+    <main>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-8 offset-2"
+                    style="margin-top: 5vh; border: thin solid grey; border-radius: 5px; background: rgba(221,221,221,0.45)">
+                    <!-- graph -->
+                    <div class="row justify-content-center" style="height: 70vh">
+                        <div class="align-self-center" id="bar-chart" style="height: 100%; width: 100%"></div>
+                    </div>
                 </div>
             </div>
-
-            <!-- graph -->
-            <div class="row justify-content-center" style="height: 70vh">
-                <div class="align-self-center" id="bar-chart" style="height: 100%; width: 100%"></div>
-            </div>
         </div>
-    </div>
-</div>
+    </main>
 
 
 <!-- Load JS libraries -->
