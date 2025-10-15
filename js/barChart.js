@@ -33,6 +33,15 @@ class BarChart {
 			.append("g")
 			.attr("transform", "translate(" + vis.margin.left + "," + vis.margin.top + ")");
 
+
+        // stick figure (load once)
+        vis.iconReady = d3.xml("svg/stickfigure.svg").then(data => {
+        const imported = document.importNode(data.documentElement, true);
+        // ensure we append the <symbol> into our chart's <defs>
+        const defs = vis.svg.select("defs").empty() ? vis.svg.append("defs") : vis.svg.select("defs");
+        defs.node().appendChild(imported.querySelector("symbol")); // id="icon-stick"
+        });
+
         // Aggregate counts per pedAct
         vis.counts = Array.from(
             d3.rollup(
@@ -43,13 +52,16 @@ class BarChart {
             ([pedAct, count]) => ({ pedAct, count })
         );
 
+        // Sort ascending by count
+        vis.counts.sort((a, b) => b.count - a.count);
+
         // Scales and axes
         vis.xScale = d3.scaleLinear()
             .range([0, vis.width])
-            .domain([0, vis.data.length]);  
+            .domain([0, d3.max(vis.counts, d => d.count) + 30]);  // added 30 for padding  & making it based off vis.counts
         
         vis.yScale = d3.scaleBand()
-            .domain(vis.data.map(d => d.pedAct))
+            .domain(vis.counts.map(d => d.pedAct)) 
             .range([vis.height, 0])
             .padding(0.1);
 
@@ -90,26 +102,107 @@ class BarChart {
 	 * The drawing function - should use the D3 update sequence (enter, update, exit)
  	* Function parameters only needed if different kinds of updates are needed
  	*/
-	updateVis(){
-		let vis = this;
-        
-        vis.svg.selectAll(".bar")
-            .data(vis.counts)
-            .join("rect")
+
+    updateVis(){
+        const vis = this;
+        const animationDelay = 180;
+        const barCount = vis.counts.length;
+
+    // bars
+        const bars = vis.svg.selectAll(".bar")
+            .data(vis.counts, d => d.pedAct); 
+
+        const barsEnter = bars.enter().append("rect")
             .attr("class", "bar")
             .attr("y", d => vis.yScale(d.pedAct))
             .attr("height", vis.yScale.bandwidth())
             .attr("x", 0)
-            .attr("width", d => vis.xScale(d.count))
+            .attr("width", 0) // starting at 0 for animatio
             .attr("fill", d => vis.colorScale(d.pedAct));
-        
-        vis.svg.selectAll(".bar-label")
-            .data(vis.counts)
-            .join("text")
+
+        const barsMerged = barsEnter.merge(bars);
+
+        barsMerged
+            .transition() //animation attempt
+            .delay((d, i) => (barCount - i) * animationDelay) // staggering it using index also, (barCount - i) makes it go reverse instead
+            .duration(800)
+            .ease(d3.easeCubicOut)
+            .attr("width", d => vis.xScale(d.count));
+
+        bars.exit().remove();
+
+        // DO THE SAME FOR LABELS
+        const labels = vis.svg.selectAll(".bar-label")
+            .data(vis.counts, d => d.pedAct);
+
+        const labelsEnter = labels.enter().append("text")
             .attr("class", "bar-label")
-            .attr("x", d => vis.xScale(d.count) + 5)
-            .attr("y", d => vis.yScale(d.pedAct) + vis.yScale.bandwidth() / 2)
+            .attr("x", 5) // start near the axis?
+            .attr("y", d => vis.yScale(d.pedAct) + vis.yScale.bandwidth()/2)
             .attr("dy", "0.35em")
+            .attr("opacity", 0)
             .text(d => d.count);
-	}
+
+        const labelsMerged = labelsEnter.merge(labels)
+            .text(d => d.count);
+
+            labelsMerged
+                .transition()
+                .delay((d, i) => (barCount - i) * animationDelay)
+                .duration(800)
+                .ease(d3.easeCubicOut)
+                .attr("x", d => vis.xScale(d.count) + 5)
+                .attr("opacity", 1);
+
+        labels.exit().remove();
+
+
+        // SAME FOR THE STICK FIGURES ANIAMTION
+        const GAP = 13;   // gap from the end of the bar      
+        const figures_size = 0.05;
+
+        vis.iconReady && vis.iconReady.then(() => {
+            const icons = vis.svg.selectAll(".bar-icon")
+                .data(vis.counts, d => d.pedAct);
+
+            const iconsEnter = icons.enter() // How the stick figures come into the visual initially
+                .append("use")
+                .attr("class", "bar-icon")
+                .attr("href", "#icon-stick")
+                .attr("xlink:href", "#icon-stick")
+                .style("color", d => vis.colorScale(d.pedAct))
+                .style("opacity", 0)
+                .attr("transform", d => {
+                const y = vis.yScale(d.pedAct) + vis.yScale.bandwidth()/2;
+                const x = vis.xScale(0) + GAP;
+                return `translate(${x},${y}) scale(${figures_size})`;
+                });
+
+            iconsEnter.merge(icons) // how the stick figures animate to the end of the bar
+                .transition()
+                .delay((d, i) => (barCount - 1 - i) * animationDelay)
+                .duration(800)
+                .ease(d3.easeCubicOut)
+                .style("opacity", 1)
+                .attr("transform", d => {
+                const y = vis.yScale(d.pedAct); // added 30 just to fix it a bit
+                const x = vis.xScale(d.count) + GAP; // right end
+                return `translate(${x},${y}) scale(${figures_size})`;
+                });
+
+            icons.exit().remove();
+        });
+
+
+        vis.svg.select(".x-axis")
+            .transition()
+            .delay(100)
+            .duration(600)
+            .ease(d3.easeCubicOut)
+            .call(vis.xAxis);
+
+        vis.svg.select(".y-axis").call(vis.yAxis);
+        
+    }
+
 }
