@@ -1,3 +1,385 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
-  background-color: #a6a6a6; /* I hate white backgrounds grrr */
+    background-color: #F8F5ED; /* Cream background */
+    font-family: 'Playfair Display', serif;
+    overflow-x: hidden;
+}
+
+/* Main container */
+.infographic-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Title Section */
+.title-section {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    z-index: 10;
+}
+
+.main-title {
+    color: #C75B4A; /* Orange-red color */
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    line-height: 1.2;
+    font-style: italic;
+}
+
+.title-line-1 {
+    font-size: 18px;
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 400;
+}
+
+.title-line-2 {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 700;
+}
+
+.title-line-3 {
+    font-size: 18px;
+    display: block;
+    font-weight: 400;
+}
+
+.title-line-3 a {
+    color: #C75B4A;
+    text-decoration: underline;
+}
+
+.title-line-3 a:hover {
+    text-decoration: underline;
+}
+
+/* Play Button */
+.play-button {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    z-index: 10;
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: transparent;
+}
+
+.play-triangle {
+    width: 0;
+    height: 0;
+    border-left: 20px solid #000;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.play-button:hover .play-triangle {
+    transform: scale(1.1);
+}
+
+.play-button.playing {
+    background-color: transparent;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.play-button.playing .play-triangle {
+    transform: scale(0.8);
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    border-bottom: 0;
+    width: 4px;
+    height: 20px;
+    background-color: #000000;
+    position: relative;
+}
+
+.play-button.playing .play-triangle::after {
+    content: '';
+    position: absolute;
+    right: -8px;
+    top: 0;
+    width: 4px;
+    height: 20px;
+    background-color: #000000;
+}
+
+/* Visualization Area */
+.visualization-area {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 0 40px;
+    margin-top: 160px;
+    min-height: 600px;
+}
+
+/* Road Container */
+.road-container {
+    flex: 1;
+    height: 500px;
+    position: relative;
+    background-color: #7A8D8E; /* Muted blue-grey road */
+    border-radius: 0;
+    padding: 0;
+    margin-right: 20px;
+    margin-top: 12px; /* Space for top green shoulder + white tab */
+    margin-bottom: 12px; /* Space for bottom green shoulder + white tab */
+}
+
+/* Road shoulders/sidewalks */
+.road-container::before,
+.road-container::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background-color: #92C7B9; /* Light mint green */
+    z-index: 1;
+}
+
+.road-container::before {
+    top: -12px; /* Position above the road container */
+}
+
+.road-container::after {
+    bottom: -12px; /* Position below the road container */
+}
+
+/* White tabs between green shoulders and road */
+.road-container::before {
+    border-bottom: 4px solid #FFFFFF;
+}
+
+.road-container::after {
+    border-top: 4px solid #FFFFFF;
+}
+
+/* Legend Container */
+.legend-container {
+    width: 300px;
+    max-height: 524px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 25px 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    justify-content: space-between;
+    height: 524px;
+    position: relative;
+}
+
+/* Custom scrollbar for legend */
+.legend-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.legend-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.legend-container::-webkit-scrollbar-thumb {
+    background: #C75B4A;
+    border-radius: 3px;
+}
+
+.legend-container::-webkit-scrollbar-thumb:hover {
+    background: #a0483a;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.legend-text {
+    color: #C75B4A;
+    font-family: 'Playfair Display', serif;
+    font-size: 12px;
+    line-height: 1.2;
+    word-wrap: break-word;
+    font-style: italic;
+}
+
+/* Timeline */
+.timeline-container {
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    right: 40px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+}
+
+.timeline-line {
+    flex: 1;
+    height: 2px;
+    background-color: #333333;
+    position: relative;
+}
+
+.timeline-label {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #000;
+    position: absolute;
+    bottom: 10px;
+    font-style: italic;
+}
+
+.timeline-start {
+    left: 0;
+}
+
+.timeline-end {
+    right: 0;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: 5.9%; /* Position for 2007 (1 year out of 17 total years) */
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.marker-dot {
+    width: 12px;
+    height: 12px;
+    background-color: #C75B4A;
+    border-radius: 50%;
+    margin-bottom: 5px;
+}
+
+.marker-label {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #C75B4A;
+    font-weight: 700;
+    font-style: italic;
+}
+
+/* Year Slider */
+.year-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.year-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #C75B4A;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.year-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #C75B4A;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+/* Chart styling */
+#bar-chart {
+    width: 100%;
+    height: 100%;
+}
+
+/* SVG styling */
+.bar {
+    rx: 4px;
+    ry: 4px;
+}
+
+.bar-label {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    fill: #FFFFFF;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+}
+
+.emoji-icon {
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+    fill: #000;
+    pointer-events: none;
+}
+
+.lane-divider {
+    stroke: #FFFFFF;
+    stroke-width: 3;
+}
+
+/* Axis styling */
+.axis {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+}
+
+.x-axis .tick line,
+.y-axis .tick line {
+    stroke: #ccc;
+}
+
+.x-axis .domain,
+.y-axis .domain {
+    stroke: #ccc;
+}
+
+.x-axis .tick text,
+.y-axis .tick text {
+    fill: #666;
 }
