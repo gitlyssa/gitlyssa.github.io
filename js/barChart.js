@@ -118,7 +118,7 @@ class BarChart {
     }
 
     /*
-     * Create static lane dividers that don't change position
+     * Create static lane dividers
      */
     createStaticLaneDividers() {
         let vis = this;
@@ -311,30 +311,6 @@ class BarChart {
     }
 
     /*
-     * Test function to debug year display
-     */
-    testYearDisplay() {
-        let vis = this;
-        console.log('Testing year display...');
-        console.log('Current year:', vis.currentYear);
-        
-        let currentYearLabel = document.getElementById('current-year');
-        if (!currentYearLabel) {
-            currentYearLabel = document.querySelector('.marker-label');
-        }
-        if (!currentYearLabel) {
-            currentYearLabel = document.querySelector('#timeline-marker .marker-label');
-        }
-        
-        console.log('Found element:', currentYearLabel);
-        if (currentYearLabel) {
-            console.log('Current text:', currentYearLabel.textContent);
-            currentYearLabel.textContent = 'TEST';
-            console.log('Set to TEST, now:', currentYearLabel.textContent);
-        }
-    }
-
-    /*
  	* Data wrangling
  	*/
 	wrangleData(){
@@ -370,7 +346,7 @@ class BarChart {
         const barsEnter = bars.enter().append("rect")
             .attr("class", "bar")
             .attr("x", 0)
-            .attr("y", (d, i) => vis.yScale(i)) // Use index (rank) instead of category name
+            .attr("y", (d, i) => vis.yScale(i)) // Use index (rank)
             .attr("width", 0) // starting at 0 for animation
             .attr("height", vis.yScale.bandwidth())
             .attr("fill", d => vis.colorScale(d.pedAct))
@@ -424,13 +400,13 @@ class BarChart {
 
         labels.exit().remove();
 
-        // Create static lane dividers (only once, don't change position)
+        // Create static lane dividers
         if (!vis.laneDividersCreated) {
             vis.createStaticLaneDividers();
             vis.laneDividersCreated = true;
         }
 
-        // Add emoji icons next to numbers
+        // Add walking icons
         const emojiIcons = vis.svg.selectAll(".emoji-icon")
             .data(vis.counts, d => d.pedAct);
 
