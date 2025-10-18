@@ -4,45 +4,58 @@
     <meta charset="utf-8">
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CSC316 A4 Interactive Visualization</title>
+    <title>Cumulative pedestrian-involved collisions by pedestrian action (2006-2023)</title>
 
-    <!-- Load Google Font -->
-    <link href='https://fonts.googleapis.com/css?family=Roboto:100,400,300,400italic,700' rel='stylesheet'
-          type='text/css'>
-
-    <!-- CSS libraries -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Load Google Fonts -->
+    <link href='https://fonts.googleapis.com/css?family=Playfair+Display:400,700&family=Arial:wght@400;700' rel='stylesheet' type='text/css'>
 
     <!-- Custom CSS code -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <header class="site-header border-bottom">
-    <div class="container-lg py-4">
-        <h1 class="h3 mb-2">Number of pedestrian-involved collisions and corresponding pedestrian actions</h1>
-        <a href="https://data.torontopolice.on.ca/datasets/0a1ee9d9436546dcbdc0ee9301e45e83_0/explore?location=3.764176%2C-79.381430%2C0.00&showTable=true" target="_blank" class="text-decoration-none"> 
-            <p> Toronto collisions dataset </p>
-        </a>
-    </div>
-  </header>
-    <main>
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-8 offset-2"
-                    style="margin-top: 5vh; border: thin solid grey; border-radius: 5px; background: rgba(221,221,221,0.45)">
-                    <!-- graph -->
-                    <div class="row justify-content-center" style="height: 70vh">
-                        <div class="align-self-center" id="bar-chart" style="height: 100%; width: 100%"></div>
-                    </div>
-                </div>
+    <div class="infographic-container">
+        <!-- Title Section -->
+        <div class="title-section">
+            <h1 class="main-title">
+                <span class="title-line-1">Cumulative pedestrian-involved collisions</span>
+                <span class="title-line-2">by pedestrian action</span>
+                <a href="https://data.torontopolice.on.ca/datasets/0a1ee9d9436546dcbdc0ee9301e45e83_0/explore?location=3.764176%2C-79.381430%2C0.00&showTable=true" target="_blank" class="title-line-3">Toronto Police Data</a>
+            </h1>
+        </div>
+
+        <!-- Play Button -->
+        <div class="play-button">
+            <div class="play-triangle"></div>
+        </div>
+
+        <!-- Main Visualization Area -->
+        <div class="visualization-area">
+            <!-- Road Visualization -->
+            <div class="road-container">
+                <div id="bar-chart"></div>
+            </div>
+            
+            <!-- Legend -->
+            <div class="legend-container" id="legend-container">
+                <!-- Legend items will be dynamically generated -->
             </div>
         </div>
-    </main>
+
+        <!-- Timeline -->
+        <div class="timeline-container">
+            <div class="timeline-line"></div>
+            <div class="timeline-label timeline-start">2006</div>
+            <div class="timeline-label timeline-end">2023</div>
+                <div class="timeline-marker" id="timeline-marker">
+                    <div class="marker-dot"></div>
+                    <div class="marker-label" id="current-year">2007</div>
+                </div>
+                <input type="range" id="year-slider" min="2006" max="2023" value="2007" class="year-slider">
+        </div>
+    </div>
 
 
 <!-- Load JS libraries -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
 <!-- d3 -->
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
