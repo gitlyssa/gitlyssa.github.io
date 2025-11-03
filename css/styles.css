@@ -333,8 +333,8 @@ body {
 .timeline-marker {
     position: absolute;
     left: 5.9%; /* Position for 2007 (1 year out of 17 total years) */
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0;
+    transform: translate(-50%, -50%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -346,6 +346,9 @@ body {
     background-color: #C75B4A;
     border-radius: 50%;
     margin-bottom: 5px;
+    position: relative;
+    margin-top: 20px;
+    top: 35px;
 }
 
 .marker-label {
@@ -354,6 +357,7 @@ body {
     color: #C75B4A;
     font-weight: 700;
     font-style: italic;
+    bottom: 0px;
 }
 
 /* Year Slider */
