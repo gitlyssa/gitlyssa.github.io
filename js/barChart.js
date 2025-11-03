@@ -77,7 +77,7 @@ class BarChart {
         vis.updateVis();
         
         // Create dynamic legend
-        vis.createLegend();
+        // vis.createLegend();
 
         // Responsive resize listener
         window.addEventListener('resize', debounce(() => vis.handleResize(), 150));
@@ -111,7 +111,7 @@ class BarChart {
         vis.updateVis();
 
         // Update legend and timeline marker
-        vis.createLegend();
+        // vis.createLegend();
         const timelineMarker = document.getElementById('timeline-marker');
         if (timelineMarker) {
             const percentage = ((vis.currentYear - 2006) / (2023 - 2006)) * 100;
@@ -244,7 +244,7 @@ class BarChart {
             // Reprocess data and update visualization
             vis.processData();
             vis.updateVis();
-            vis.createLegend();
+            // vis.createLegend();
         });
         
         // Set initial year display
@@ -322,7 +322,7 @@ class BarChart {
             // Update visualization
             vis.processData();
             vis.updateVis();
-            vis.createLegend();
+            // vis.createLegend();
             
             // Update timeline marker
             const timelineMarker = document.querySelector('.timeline-marker');
@@ -363,116 +363,143 @@ class BarChart {
  	*/
 
     updateVis(){
-        const vis = this;
-        
-        // Update xScale based on current data to ensure bars fit within screen
-        const maxCount = d3.max(vis.counts, d => d.count);
-        const maxBarWidth = vis.width * 0.95; // Use 95% of available width to prevent overflow
-        
-        vis.xScale = d3.scaleLinear()
-            .range([0, maxBarWidth])
-            .domain([0, maxCount]);
-        
-        // Clear any existing stick figures to prevent duplicates
-        vis.svg.selectAll(".bar-icon").remove();
-        
-        const animationDelay = 50;
-        const barCount = vis.counts.length;
+    const vis = this;
+    
+    // Update xScale based on current data
+    const maxCount = d3.max(vis.counts, d => d.count);
+    const maxBarWidth = vis.width * 0.75; // Use 75% of available width to leave more space for labels
+    
+    vis.xScale = d3.scaleLinear()
+        .range([0, maxBarWidth])
+        .domain([0, maxCount]);
+    
+    // Clear any existing stick figures to prevent duplicates
+    vis.svg.selectAll(".bar-icon").remove();
+    
+    const animationDelay = 50;
+    const barCount = vis.counts.length;
 
-        // Create horizontal bars (road lanes)
-        const bars = vis.svg.selectAll(".bar")
-            .data(vis.counts, d => d.pedAct); 
+    // Create horizontal bars (road lanes)
+    const bars = vis.svg.selectAll(".bar")
+        .data(vis.counts, d => d.pedAct); 
 
-        const barsEnter = bars.enter().append("rect")
-            .attr("class", "bar")
-            .attr("x", 0)
-            .attr("y", (d, i) => vis.yScale(i)) // Use index (rank)
-            .attr("width", 0) // starting at 0 for animation
-            .attr("height", vis.yScale.bandwidth())
-            .attr("fill", d => vis.colorScale(d.pedAct))
-            .attr("rx", 12)
-            .attr("ry", 12);
+    const barsEnter = bars.enter().append("rect")
+        .attr("class", "bar")
+        .attr("x", 0)
+        .attr("y", (d, i) => vis.yScale(i))
+        .attr("width", 0)
+        .attr("height", vis.yScale.bandwidth())
+        .attr("fill", d => vis.colorScale(d.pedAct))
+        .attr("rx", 12)
+        .attr("ry", 12);
 
-        const barsMerged = barsEnter.merge(bars);
+    const barsMerged = barsEnter.merge(bars);
 
-        barsMerged
-            .transition()
-            .duration(800)
-            .ease(d3.easeLinear)
-            .attr("width", d => vis.xScale(d.count))
-            .attr("y", (d, i) => vis.yScale(i)); // Update y position based on rank
+    barsMerged
+        .transition()
+        .duration(800)
+        .ease(d3.easeLinear)
+        .attr("width", d => vis.xScale(d.count))
+        .attr("y", (d, i) => vis.yScale(i));
 
-        bars.exit().remove();
+    bars.exit().remove();
 
-        // Add text labels showing accumulated numbers inside each bar
-        const labels = vis.svg.selectAll(".bar-label")
-            .data(vis.counts, d => d.pedAct);
+    // Add text labels showing accumulated numbers inside each bar
+    const labels = vis.svg.selectAll(".bar-label")
+        .data(vis.counts, d => d.pedAct);
 
-        const labelsEnter = labels.enter().append("text")
-            .attr("class", "bar-label")
-            .attr("x", 0) // Start at left edge
-            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-            .attr("text-anchor", "end")
-            .attr("dy", "0.35em")
-            .style("font-family", "Arial, sans-serif")
-            .style("font-size", "12px")
-            .style("font-weight", "700")
-            .style("fill", "#FFFFFF")
-            .style("opacity", 0)
-            .text("0"); // Start with 0
+    const labelsEnter = labels.enter().append("text")
+        .attr("class", "bar-label")
+        .attr("x", 0)
+        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+        .attr("text-anchor", "end")
+        .attr("dy", "0.35em")
+        .style("font-family", "Arial, sans-serif")
+        .style("font-size", "12px")
+        .style("font-weight", "700")
+        .style("fill", "#FFFFFF")
+        .style("opacity", 0)
+        .text("0");
 
-        labelsEnter.merge(labels)
-            .transition()
-            .duration(800)
-            .ease(d3.easeLinear)
-            .style("opacity", 1)
-            .attr("x", d => Math.max(vis.xScale(d.count) - 10, 50)) // Position at right edge with padding, minimum 50px from left
-            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-            .tween("text", function(d) {
-                const current = this.textContent.replace(/,/g, '') || 0;
-                const target = d.count;
-                const interpolator = d3.interpolateNumber(current, target);
-                return function(t) {
-                    const value = Math.round(interpolator(t));
-                    d3.select(this).text(value.toLocaleString());
-                };
-            });
+    labelsEnter.merge(labels)
+        .transition()
+        .duration(800)
+        .ease(d3.easeLinear)
+        .style("opacity", 1)
+        .attr("x", d => Math.max(vis.xScale(d.count) - 10, 50))
+        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+        .tween("text", function(d) {
+            const current = this.textContent.replace(/,/g, '') || 0;
+            const target = d.count;
+            const interpolator = d3.interpolateNumber(current, target);
+            return function(t) {
+                const value = Math.round(interpolator(t));
+                d3.select(this).text(value.toLocaleString());
+            };
+        });
 
-        labels.exit().remove();
+    labels.exit().remove();
 
-        // Create static lane dividers
-        if (!vis.laneDividersCreated) {
-            vis.svg.selectAll(".lane-divider").remove();
-            vis.createStaticLaneDividers();
-            vis.laneDividersCreated = true;
-        }
+    // Add legend labels at the far right of the chart area
+    const legendLabels = vis.svg.selectAll(".legend-label")
+        .data(vis.counts, d => d.pedAct);
 
-        // Add walking icons
-        const emojiIcons = vis.svg.selectAll(".emoji-icon")
-            .data(vis.counts, d => d.pedAct);
+    const legendLabelsEnter = legendLabels.enter().append("text")
+        .attr("class", "legend-label")
+        .attr("x", vis.width - 10) // Position at far right with 10px padding
+        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+        .attr("text-anchor", "end") // Right-align text
+        .attr("dy", "0.35em")
+        .style("font-family", "Arial, sans-serif")
+        .style("font-size", "12px")
+        .style("font-weight", "400")
+        .style("fill", "#C75B4A")
+        .style("opacity", 0)
+        .text(d => d.pedAct);
 
-        const emojiIconsEnter = emojiIcons.enter().append("text")
-            .attr("class", "emoji-icon")
-            .attr("x", 0)
-            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-            .attr("text-anchor", "start")
-            .attr("dy", "0.35em")
-            .style("font-size", "24px")
-            .style("opacity", 0)
-            .text("🚶‍♀️"); // Walking person emoji
+    legendLabelsEnter.merge(legendLabels)
+        .transition()
+        .duration(800)
+        .ease(d3.easeLinear)
+        .style("opacity", 1)
+        .attr("x", vis.width - 10) // Fixed position at far right
+        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+        .text(d => d.pedAct);
 
-        emojiIconsEnter.merge(emojiIcons)
-            .transition()
-            .duration(800)
-            .ease(d3.easeLinear)
-            .style("opacity", 1)
-            .attr("x", d => Math.max(vis.xScale(d.count) - 10, 50) + 20) // Position closer to numbers
-            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-            .text("🚶‍♀️"); // Walking person emoji
+    legendLabels.exit().remove();
 
-        emojiIcons.exit().remove();
+    // Create static lane dividers
+    if (!vis.laneDividersCreated) {
+        vis.svg.selectAll(".lane-divider").remove();
+        vis.createStaticLaneDividers();
+        vis.laneDividersCreated = true;
     }
 
+    // Add walking icons - position them closer to the numbers
+    const emojiIcons = vis.svg.selectAll(".emoji-icon")
+        .data(vis.counts, d => d.pedAct);
+
+    const emojiIconsEnter = emojiIcons.enter().append("text")
+        .attr("class", "emoji-icon")
+        .attr("x", 0)
+        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+        .attr("text-anchor", "start")
+        .attr("dy", "0.35em")
+        .style("font-size", "20px") // Slightly smaller to fit better
+        .style("opacity", 0)
+        .text("🚶‍♀️");
+
+    emojiIconsEnter.merge(emojiIcons)
+        .transition()
+        .duration(800)
+        .ease(d3.easeLinear)
+        .style("opacity", 1)
+        .attr("x", d => Math.max(vis.xScale(d.count) - 10, 50) + 15)
+        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+        .text("🚶‍♀️");
+
+    emojiIcons.exit().remove();
+    }
 }
 
 
