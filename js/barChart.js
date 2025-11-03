@@ -78,7 +78,47 @@ class BarChart {
         
         // Create dynamic legend
         vis.createLegend();
+
+        // Responsive resize listener
+        window.addEventListener('resize', debounce(() => vis.handleResize(), 150));
+
     }
+
+
+    // Updated handleResize method
+    handleResize() {
+        const vis = this;
+
+        // Force reflow before measuring
+        const container = document.getElementById(vis.parentElement);
+        container.getBoundingClientRect(); // triggers reflow
+
+        // Get *latest* width and height
+        vis.width = container.clientWidth - vis.margin.left - vis.margin.right;
+        vis.height = container.clientHeight - vis.margin.top - vis.margin.bottom;
+
+        // Update SVG size
+        d3.select(`#${vis.parentElement} svg`)
+            .attr('width', vis.width + vis.margin.left + vis.margin.right)
+            .attr('height', vis.height + vis.margin.top + vis.margin.bottom);
+
+        // Update scales
+        vis.xScale.range([0, vis.width]);
+        vis.yScale.range([0, vis.height]);
+
+        // Update layout, bars, and labels *without clearing everything*
+        vis.laneDividersCreated = false;
+        vis.updateVis();
+
+        // Update legend and timeline marker
+        vis.createLegend();
+        const timelineMarker = document.getElementById('timeline-marker');
+        if (timelineMarker) {
+            const percentage = ((vis.currentYear - 2006) / (2023 - 2006)) * 100;
+            timelineMarker.style.left = percentage + '%';
+        }
+    }
+
 
     /*
      * Create dynamic legend based on actual data
@@ -402,6 +442,7 @@ class BarChart {
 
         // Create static lane dividers
         if (!vis.laneDividersCreated) {
+            vis.svg.selectAll(".lane-divider").remove();
             vis.createStaticLaneDividers();
             vis.laneDividersCreated = true;
         }
@@ -432,4 +473,13 @@ class BarChart {
         emojiIcons.exit().remove();
     }
 
+}
+
+
+function debounce(func, wait) {
+  let timeout;
+  return function() {
+    clearTimeout(timeout);
+    timeout = setTimeout(func, wait);
+  };
 }
