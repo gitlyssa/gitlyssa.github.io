@@ -65,12 +65,19 @@ body {
     text-decoration: underline;
 }
 
-/* Play Button */
-.play-button {
+/* Control Buttons Container */
+.control-buttons {
     position: absolute;
     top: 40px;
     right: 40px;
     z-index: 10;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* Play Button */
+.play-button {
     cursor: pointer;
     width: 44px;
     height: 44px;
@@ -79,6 +86,7 @@ body {
     justify-content: center;
     border-radius: 50%;
     background-color: transparent;
+    transition: all 0.3s ease;
 }
 
 .play-triangle {
@@ -88,6 +96,7 @@ body {
     border-top: 12px solid transparent;
     border-bottom: 12px solid transparent;
     transition: all 0.3s ease;
+    margin-left: 2px;
 }
 
 .play-button:hover .play-triangle {
@@ -124,6 +133,38 @@ body {
     width: 4px;
     height: 20px;
     background-color: #000000;
+}
+
+/* Restart Button */
+.restart-button {
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: transparent;
+    color: #000;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.restart-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.05);
+}
+
+.restart-button:active {
+    transform: scale(0.95);
+}
+
+.restart-button svg {
+    transition: all 0.3s ease;
+}
+
+.restart-button:hover svg {
+    transform: rotate(-45deg);
 }
 
 /* Visualization Area */

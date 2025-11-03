@@ -15,6 +15,7 @@ class BarChart {
         this.laneDividersCreated = false;
         this.isPlaying = false;
         this.playInterval = null;
+        this.initialYear = 2007;
     }
 
     /*
@@ -33,6 +34,9 @@ class BarChart {
         
         // Set up play button
         vis.setupPlayButton();
+
+        // Set up restart button
+        vis.setupRestartButton();
 
         // Margins and dimensions
 		vis.margin = {top: 5, right: 5, bottom: 5, left: 5};
@@ -256,6 +260,22 @@ class BarChart {
         }
     }
 
+    setupRestartButton() {
+        let vis = this;
+        
+        const restartButton = document.querySelector('.restart-button');
+        if (!restartButton) {
+            console.log('Restart button not found');
+            return;
+        }
+        
+        restartButton.addEventListener('click', () => {
+            vis.restartTimeline();
+        });
+        
+        console.log('Restart button setup complete');
+    }
+
     /*
      * Set up play button functionality
      */
@@ -274,6 +294,50 @@ class BarChart {
                 vis.startPlay();
             }
         });
+    }
+
+    /*
+     * Restart timeline to initial year
+     */
+    restartTimeline() {
+        let vis = this;
+        
+        // Stop auto-play if it's running
+        if (vis.isPlaying) {
+            vis.stopPlay();
+        }
+        
+        // Reset to initial year
+        vis.currentYear = vis.initialYear;
+        
+        // Update slider
+        const yearSlider = document.getElementById('year-slider');
+        if (yearSlider) {
+            yearSlider.value = vis.currentYear;
+        }
+        
+        // Update current year display
+        let currentYearLabel = document.getElementById('current-year');
+        if (!currentYearLabel) {
+            currentYearLabel = document.querySelector('.marker-label');
+        }
+        if (!currentYearLabel) {
+            currentYearLabel = document.querySelector('#timeline-marker .marker-label');
+        }
+        
+        if (currentYearLabel) {
+            currentYearLabel.textContent = vis.currentYear;
+        }
+        
+        // Update timeline marker position
+        const timelineMarker = document.querySelector('.timeline-marker');
+        if (timelineMarker) {
+            timelineMarker.style.left = `${((vis.currentYear - 2006) / (2023 - 2006)) * 100}%`;
+        }
+        
+        // Reprocess data and update visualization
+        vis.processData();
+        vis.updateVis();
     }
 
     /*
