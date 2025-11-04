@@ -490,7 +490,8 @@ class BarChart {
         .duration(800)
         .ease(d3.easeLinear)
         .style("opacity", 1)
-        .attr("x", d => Math.max(vis.xScale(d.count) - 10, 50))
+        .attr("x", d => Math.max(vis.xScale(d.count) - 5, 5))
+        .attr("text-anchor", "end")
         .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
         .tween("text", function(d) {
             const current = this.textContent.replace(/,/g, '') || 0;
