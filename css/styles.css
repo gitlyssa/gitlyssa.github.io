@@ -22,9 +22,10 @@ body {
 
 /* Title Section */
 .title-section {
-    position: absolute;
-    top: 40px;
-    left: 40px;
+    position: relative;
+    top: 0;
+    left: 0;
+    margin: 40px;
     z-index: 10;
 }
 
@@ -65,15 +66,21 @@ body {
     text-decoration: underline;
 }
 
+/* Description */
+.description-section {
+    margin-top: 30px;
+    margin-bottom: -50px;
+    width: 150vh;
+}
+
 /* Control Buttons Container */
 .control-buttons {
-    position: absolute;
-    top: 40px;
-    right: 40px;
+    position: relative;
     z-index: 10;
     display: flex;
-    gap: 12px;
     align-items: center;
+    margin-left: auto;
+    margin-right: 45px;
 }
 
 /* Play Button */
@@ -174,7 +181,6 @@ body {
     align-items: flex-start;
     justify-content: flex-start;
     padding: 0 40px;
-    margin-top: 160px;
     min-height: 600px;
 }
 
@@ -353,7 +359,7 @@ body {
 
 .marker-label {
     font-family: Arial, sans-serif;
-    font-size: 12px;
+    font-size: 16px;
     color: #C75B4A;
     font-weight: 700;
     font-style: italic;
