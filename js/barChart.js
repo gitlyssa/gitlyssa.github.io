@@ -11,11 +11,12 @@ class BarChart {
         this.parentElement = parentElement;
         this.data = data;
         this.displayData = data;
-        this.currentYear = 2007; // Change to a year with more data
+        this.currentYear = 2007; 
         this.laneDividersCreated = false;
         this.isPlaying = false;
         this.playInterval = null;
         this.initialYear = 2007;
+        this.filterState = { severity: 'all', tod: 'all' }; 
     }
 
     /*
@@ -37,6 +38,8 @@ class BarChart {
 
         // Set up restart button
         vis.setupRestartButton();
+
+        this.bindTileFilters();
 
         // Margins and dimensions
 		vis.margin = {top: 5, right: 5, bottom: 5, left: 5};
@@ -203,7 +206,17 @@ class BarChart {
             const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
             return year >= 2006 && year <= vis.currentYear;
         });
+        // severity filter
+        if (vis.filterState.severity === 'fatal') {
+            vis.displayData = vis.displayData.filter(d => d.severity === 'fatal');
+        } else if (vis.filterState.severity === 'nonfatal') {
+            vis.displayData = vis.displayData.filter(d => d.severity === 'nonfatal');
+        }
 
+        // time-of-day filter
+        if (vis.filterState.tod !== 'all') {
+            vis.displayData = vis.displayData.filter(d => d.timeBand === vis.filterState.tod);
+        }
         // Aggregate counts per pedestrian action (cumulative)
         vis.counts = Array.from(
             d3.rollup(
@@ -395,6 +408,32 @@ class BarChart {
             }
         }, 1000); // 1 second between year changes
     }
+
+    bindTileFilters(){
+    const vis = this;
+    const bar = document.getElementById('filter-bar');
+    if (!bar) return;
+
+    bar.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.tile');
+        if (!btn) return;
+        const groupEl = btn.closest('.tile-group');
+        const group = groupEl?.getAttribute('data-group');
+        const value = btn.getAttribute('data-value');
+        if (!group || !value) return;
+
+        // single-select per group
+        groupEl.querySelectorAll('.tile').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+
+        if (group === 'severity') vis.filterState.severity = value;
+        if (group === 'tod') vis.filterState.tod = value;
+
+        vis.processData();
+        vis.updateVis();
+    });
+    }
+
 
     /*
      * Stop auto-play animation
