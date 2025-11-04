@@ -19,6 +19,22 @@ loadData();
  */
 
 function loadData() {
+
+    // Renaming labels
+    const pedActMap = {
+        "Coming From Behind Parked Vehicle": "Behind parked vehicle",
+        "Crossing marked crosswalk without ROW": "Crossing without right of way",
+        "Crossing, no Traffic Control": "Crossing with no traffic control",
+        "Crossing, Pedestrian Crossover": "Crossing with right of way",
+        "On Sidewalk or Shoulder": "On sidewalk or shoulder",
+        "Person Getting on/off School Bus": "(Un)boarding vehicle",
+        "Person Getting on/off Vehicle": "(Un)boarding vehicle",
+        "Playing or Working on Highway": "Working on highway",
+        "Running onto Roadway": "Ran onto road",
+        "Walking on Roadway Against Traffic": "Walking along road",
+        "Walking on Roadway with Traffic": "Walking along road"
+    };
+
     d3.csv("data/collisions.csv", d => {
         if (d.PEDESTRIAN == "Yes") {        // only keep rows where a pedestrian was involved in a collision 
             return {
@@ -30,7 +46,7 @@ function loadData() {
                 drivAct: d.DRIVACT,         
                 drivCond: d.DRIVCOND,       
                 pedType: d.PEDTYPE,         
-                pedAct: d.PEDACT,          
+                pedAct: pedActMap[d.PEDACT] || d.PEDACT,          
                 pedCond: d.PEDCOND   
             };
         }
