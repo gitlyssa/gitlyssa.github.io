@@ -16,7 +16,7 @@ class BarChart {
         this.isPlaying = false;
         this.playInterval = null;
         this.initialYear = 2007;
-        this.filterState = { severity: 'all', tod: 'all' }; 
+        this.filterState = { severity: 'all', pedAct: 'all', district: 'all' }; 
     }
 
     /*
@@ -40,6 +40,9 @@ class BarChart {
         vis.setupRestartButton();
 
         this.bindTileFilters();
+
+        // Set up dropdown filters
+        this.setupDropdownFilters();
 
         // Margins and dimensions
 		vis.margin = {top: 5, right: 5, bottom: 5, left: 5};
@@ -69,7 +72,7 @@ class BarChart {
         vis.yScale = d3.scaleBand()
             .domain(d3.range(10)) // Always 10 positions: 0, 1, 2, ..., 9
             .range([0, vis.height])
-            .padding(0.2);
+            .padding(0.1);
 
         // Color scale for pedestrian actions
         vis.colorScale = d3.scaleOrdinal()
@@ -213,10 +216,16 @@ class BarChart {
             vis.displayData = vis.displayData.filter(d => d.severity === 'nonfatal');
         }
 
-        // time-of-day filter
-        if (vis.filterState.tod !== 'all') {
-            vis.displayData = vis.displayData.filter(d => d.timeBand === vis.filterState.tod);
+        // pedestrian action filter
+        if (vis.filterState.pedAct !== 'all' && Array.isArray(vis.filterState.pedAct) && vis.filterState.pedAct.length > 0) {
+            vis.displayData = vis.displayData.filter(d => vis.filterState.pedAct.includes(d.pedAct));
         }
+
+        // district filter
+        if (vis.filterState.district !== 'all' && Array.isArray(vis.filterState.district) && vis.filterState.district.length > 0) {
+            vis.displayData = vis.displayData.filter(d => vis.filterState.district.includes(d.district));
+        }
+
         // Aggregate counts per pedestrian action (cumulative)
         vis.counts = Array.from(
             d3.rollup(
@@ -427,13 +436,28 @@ class BarChart {
         btn.classList.add('active');
 
         if (group === 'severity') vis.filterState.severity = value;
-        if (group === 'tod') vis.filterState.tod = value;
 
         vis.processData();
         vis.updateVis();
     });
     }
 
+    /*
+     * Set up dropdown filters for pedestrian action and district
+     */
+    setupDropdownFilters() {
+        let vis = this;
+
+        // Get unique values
+        const uniquePedActs = [...new Set(vis.data.map(d => d.pedAct).filter(d => d))].sort();
+        const uniqueDistricts = [...new Set(vis.data.map(d => d.district).filter(d => d))].sort();
+
+        // Setup pedestrian action filter
+        setupFilter('pedAct', uniquePedActs, vis);
+        
+        // Setup district filter
+        setupFilter('district', uniqueDistricts, vis);
+    }
 
     /*
      * Stop auto-play animation
@@ -613,4 +637,113 @@ function debounce(func, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(func, wait);
   };
+}
+
+// Simple filter setup function using D3 patterns
+function setupFilter(filterType, options, vis) {
+    // Prepare data: add "All" option first
+    let filterData = [{value: 'all', label: 'All', checked: true}];
+    options.forEach(opt => {
+        filterData.push({value: opt, label: opt, checked: false});
+    });
+
+    // Select container
+    let container = d3.select(`#${filterType}-checkboxes`);
+    if (container.empty()) return;
+
+    // Bind data and create checkboxes using D3 pattern
+    let items = container.selectAll(".filter-checkbox-item")
+        .data(filterData);
+
+    // Enter: create new items
+    let itemsEnter = items.enter()
+        .append("div")
+        .attr("class", "filter-checkbox-item");
+
+    // Append checkbox and label
+    itemsEnter.append("input")
+        .attr("type", "checkbox")
+        .attr("id", d => `${filterType}-${d.value === 'all' ? 'all' : d.value.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`)
+        .attr("value", d => d.value)
+        .property("checked", d => d.checked);
+
+    itemsEnter.append("label")
+        .attr("for", d => `${filterType}-${d.value === 'all' ? 'all' : d.value.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`)
+        .text(d => d.label);
+
+    // Merge enter and update
+    let itemsMerged = itemsEnter.merge(items);
+
+    // Update checkboxes
+    itemsMerged.select("input")
+        .property("checked", d => d.checked);
+
+    // Handle checkbox changes
+    container.on("change", function(event) {
+        let allCheckbox = d3.select(`#${filterType}-all`);
+        let checkboxes = container.selectAll(`input:not(#${filterType}-all)`);
+        let clicked = event.target;
+
+        if (clicked.id === `${filterType}-all`) {
+            // If "All" is checked, uncheck all others
+            if (d3.select(clicked).property("checked")) {
+                checkboxes.property("checked", false);
+                vis.filterState[filterType] = 'all';
+            }
+        } else {
+            // If any other checkbox is checked, uncheck "All"
+            if (d3.select(clicked).property("checked")) {
+                allCheckbox.property("checked", false);
+            }
+            
+            // Get selected values
+            let selected = checkboxes.nodes()
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            
+            // If nothing selected, select "All"
+            if (selected.length === 0) {
+                allCheckbox.property("checked", true);
+                vis.filterState[filterType] = 'all';
+            } else {
+                vis.filterState[filterType] = selected;
+            }
+        }
+        
+        updateFilterButtonText(filterType, vis.filterState[filterType] === 'all' ? 0 : vis.filterState[filterType].length, vis);
+        vis.processData();
+        vis.updateVis();
+    });
+
+    // Setup button toggle
+    d3.select(`#${filterType}-filter-btn`)
+        .on("click", function(event) {
+            event.stopPropagation();
+            let isVisible = container.style("display") === "flex";
+            container.style("display", isVisible ? "none" : "flex");
+            // Close other filter
+            let otherType = filterType === 'pedAct' ? 'district' : 'pedAct';
+            d3.select(`#${otherType}-checkboxes`).style("display", "none");
+        });
+
+    // Close dropdowns when clicking outside
+    d3.select("body").on("click", function(event) {
+        if (!event.target.closest('.filter-dropdown-group')) {
+            container.style("display", "none");
+            d3.select(`#${filterType === 'pedAct' ? 'district' : 'pedAct'}-checkboxes`).style("display", "none");
+        }
+    });
+}
+
+// Simple function to update filter button text
+function updateFilterButtonText(filterType, count, vis) {
+    let button = d3.select(`#${filterType}-filter-btn`);
+    if (button.empty()) return;
+
+    let baseText = filterType === 'pedAct' ? 'Pedestrian Action' : 'District';
+    let isAll = (filterType === 'pedAct' && vis.filterState.pedAct === 'all') || 
+                (filterType === 'district' && vis.filterState.district === 'all');
+    
+    button.select("span")
+        .text(isAll ? baseText : (count > 0 ? `${baseText} (${count})` : baseText));
 }
