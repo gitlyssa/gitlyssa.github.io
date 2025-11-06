@@ -9,6 +9,9 @@
     <!-- Load Google Fonts -->
     <link href='https://fonts.googleapis.com/css?family=Playfair+Display:400,700&family=Arial:wght@400;700' rel='stylesheet' type='text/css'>
 
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <!-- Custom CSS code -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -24,7 +27,7 @@
 
             <!-- Description -->
             <div class="description-section">
-                There is no shortage of delays that occur during our daily commutes—no doubt due to construction, poor road infrastructure, limited public transportation options, and traffic collisions, the most quantifiable of all these reasons. Pedestrians make up the second highest number of fatal accidents in Toronto; which is concerning as it is marketed as a walkable city. What conditions could cause this high volume of pedestrian collisions? The chart below displays the number of pedestrians involved in fatal collisions and their actions moments before the collision from 2006 to 2023.
+                There is no shortage of delays that occur during our daily commutes—no doubt due to construction, poor road infrastructure, limited public transportation options, and traffic collisions, the most quantifiable of all these reasons. Pedestrians make up the second highest number of fatal accidents in Toronto; which is concerning as it is marketed as a walkable city. What conditions could cause this high volume of pedestrian collisions? The chart below displays the number of pedestrians involved in traffic collisions and their actions moments before the collision from 2006 to 2023.
             </div>
         </div>
 
@@ -54,28 +57,41 @@
                         <button class="tile" data-value="fatal">Fatal</button>
                     </div>
 
-                    <div class="tile-group" data-group="tod">
-                        <span class="tile-label">Time</span>
-                        <button class="tile active" data-value="all">All Day</button>
-                        <button class="tile" data-value="Night">Night</button>
-                        <button class="tile" data-value="Morning">Morning</button>
-                        <button class="tile" data-value="Afternoon">Afternoon</button>
-                        <button class="tile" data-value="Evening">Evening</button>
+                    <!-- Pedestrian Action Filter -->
+                    <div class="filter-dropdown-group">
+                        <button class="filter-btn" id="pedAct-filter-btn">
+                            <i class="fas fa-filter"></i>
+                            <span>Pedestrian Action</span>
+                        </button>
+                        <div class="filter-checkbox-container" id="pedAct-checkboxes">
+                        </div>
+                    </div>
+
+                    <!-- District Filter -->
+                    <div class="filter-dropdown-group">
+                        <button class="filter-btn" id="district-filter-btn">
+                            <i class="fas fa-filter"></i>
+                            <span>District</span>
+                        </button>
+                        <div class="filter-checkbox-container" id="district-checkboxes">
+                        </div>
                     </div>
                 </div>
             <!-- Road Visualization -->
             <div class="road-container">
                 <div id="bar-chart"></div>
-                <!-- Timeline -->
-                <div class="timeline-container">
-                    <div class="timeline-line"></div>
-                    <div class="timeline-label timeline-start">2006</div>
-                    <div class="timeline-label timeline-end">2023</div>
-                    <div class="timeline-marker" id="timeline-marker">
-                        <div class="marker-dot"></div>
-                        <div class="marker-label" id="current-year">2007</div>
-                    </div>
-                    <input type="range" id="year-slider" min="2006" max="2023" value="2007" class="year-slider">
+            </div>
+            
+            <!-- Timeline -->
+            <div class="timeline-container">
+                <div class="timeline-line"></div>
+                <div class="timeline-label timeline-start">2006</div>
+                <div class="timeline-label timeline-end">2023</div>
+                <div class="timeline-marker" id="timeline-marker">
+                    <div class="marker-dot"></div>
+                    <div class="marker-label" id="current-year">2007</div>
+                </div>
+                <input type="range" id="year-slider" min="2006" max="2023" value="2007" class="year-slider">
             </div>
         </div>
     </div>

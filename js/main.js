@@ -48,7 +48,8 @@ function loadData() {
         pedAct: pedActMap[d.PEDACT] || d.PEDACT,
         pedCond: d.PEDCOND,
         timeBand: timeBandFromNUM(d.TIME),
-        severity: classifySeverity(d.ACCLASS)
+        severity: classifySeverity(d.ACCLASS),
+        district: d.DISTRICT
       };
     }
   }).then(data => {
