@@ -447,12 +447,17 @@ class BarChart {
     */
     calculateTooltipData(pedAct) {
         let vis = this;
-        
-        // Get current year data for this pedestrian action
-        const currentYearData = vis.displayData.filter(d => d.pedAct === pedAct);
+
+        // Get current year data for this pedestrian action (single year only)
+        const currentYearData = vis.data.filter(d => {
+            const dateStr = d.date;
+            const yearMatch = dateStr.match(/\/(\d{4})\s/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
+            return year === vis.currentYear && d.pedAct === pedAct;
+        });
         const currentCount = currentYearData.length;
-        
-        // Calculate previous year data
+
+        // Get previous year data (single year)
         const previousYear = vis.currentYear - 1;
         const previousYearData = vis.data.filter(d => {
             const dateStr = d.date;
@@ -461,15 +466,23 @@ class BarChart {
             return year === previousYear && d.pedAct === pedAct;
         });
         const previousCount = previousYearData.length;
-        
+
         // Calculate increase from previous year
         let increase = currentCount - previousCount;
-        let increasePercentage = previousCount > 0 ? ((increase / previousCount) * 100) : (currentCount > 0 ? 100 : 0);
-        
-        // Calculate percentage among other pedestrian actions for current year
-        const totalCurrentYear = vis.displayData.length;
+        let increasePercentage = previousCount > 0
+            ? ((increase / previousCount) * 100)
+            : (currentCount > 0 ? 100 : 0);
+
+        // Calculate percentage among all pedestrian actions for current year
+        const totalCurrentYear = vis.data.filter(d => {
+            const dateStr = d.date;
+            const yearMatch = dateStr.match(/\/(\d{4})\s/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
+            return year === vis.currentYear;
+        }).length;
+
         const percentage = totalCurrentYear > 0 ? ((currentCount / totalCurrentYear) * 100) : 0;
-        
+
         // Find most common month
         const monthCounts = {};
         currentYearData.forEach(d => {
@@ -480,7 +493,7 @@ class BarChart {
                 monthCounts[month] = (monthCounts[month] || 0) + 1;
             }
         });
-        
+
         let mostCommonMonth = "N/A";
         let maxMonthCount = 0;
         Object.entries(monthCounts).forEach(([month, count]) => {
@@ -497,21 +510,21 @@ class BarChart {
                 districtCounts[d.district] = (districtCounts[d.district] || 0) + 1;
             }
         });
-        
+
         // Sort districts by count (descending)
         const sortedDistricts = Object.entries(districtCounts)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 3); // Get top 3 districts
-        
+            .slice(0, 3); // Top 3 districts
+
         // Calculate concentration metrics
         const topDistrict = sortedDistricts[0] ? sortedDistricts[0][0] : "N/A";
         const topDistrictCount = sortedDistricts[0] ? sortedDistricts[0][1] : 0;
         const topDistrictPercentage = currentCount > 0 ? ((topDistrictCount / currentCount) * 100).toFixed(1) : 0;
-        
+
         // Calculate top 3 districts concentration
         const top3Total = sortedDistricts.reduce((sum, district) => sum + district[1], 0);
         const top3Percentage = currentCount > 0 ? ((top3Total / currentCount) * 100).toFixed(1) : 0;
-        
+
         return {
             pedAct: pedAct,
             currentCount: currentCount,
@@ -616,6 +629,7 @@ class BarChart {
                     .attr('class', 'tooltip-value')
                     .text(tooltipData.currentCount.toLocaleString());
 
+
                 // Percentage of total
                 const item3 = tooltip.append('div')
                     .attr('class', 'tooltip-item');
@@ -627,26 +641,39 @@ class BarChart {
                 item3.append('span')
                     .attr('class', 'tooltip-value')
                     .text(`${tooltipData.percentage.toFixed(1)}%`);
+
                 
                 // Change from previous year
-                const item2 = tooltip.append('div')
-                    .attr('class', 'tooltip-item');
-                
-                const previousYearText = tooltipData.previousCount > 0 ? 
-                    `Change from ${vis.currentYear - 1}:` : 
-                    'Change from previous year:';
-                
-                const increaseClass = tooltipData.increase > 0 ? 'tooltip-positive' : 
-                                    tooltipData.increase < 0 ? 'tooltip-negative' : 'tooltip-neutral';
-                const increaseSign = tooltipData.increase > 0 ? '+' : '';
-                
-                item2.append('span')
-                    .attr('class', 'tooltip-label')
-                    .text(previousYearText);
-                
-                item2.append('span')
-                    .attr('class', `tooltip-value ${increaseClass}`)
-                    .text(`${increaseSign}${tooltipData.increase} (${increaseSign}${tooltipData.increasePercentage.toFixed(1)}%)`);
+                if (tooltipData.previousCount > 0) {
+                    const item2 = tooltip.append('div')
+                        .attr('class', 'tooltip-item');
+
+                    const previousYearText = `Change from previous year (non-cumulative):`;
+                    const increaseClass = tooltipData.increase > 0
+                        ? 'tooltip-positive'
+                        : tooltipData.increase < 0
+                            ? 'tooltip-negative'
+                            : 'tooltip-neutral';
+                    const increaseSign = tooltipData.increase > 0 ? '+' : '';
+
+                    // Smart percentage formatting: 12%, 12.5%, -3%
+                    const formattedPercent = (() => {
+                        const val = tooltipData.increasePercentage;
+                        const absVal = Math.abs(val);
+                        const sign = val > 0 ? '+' : val < 0 ? '' : '';
+                        return absVal % 1 === 0
+                            ? `${sign}${val.toFixed(0)}%`
+                            : `${sign}${val.toFixed(1)}%`;
+                    })();
+
+                    item2.append('span')
+                        .attr('class', 'tooltip-label')
+                        .text(previousYearText);
+
+                    item2.append('span')
+                        .attr('class', `tooltip-value ${increaseClass}`)
+                        .text(`${increaseSign}${tooltipData.increase} (${formattedPercent})`);
+                }
                 
                 
                 // Most common month
@@ -928,7 +955,7 @@ function setupFilter(filterType, options, vis) {
 */
 function updateFilterButtonText(filterType, count, vis) {
     let button = d3.select(`#${filterType}-filter-btn`);
-    
+
     if (button.empty()) return;
 
     let baseText;
