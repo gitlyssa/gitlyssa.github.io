@@ -14,6 +14,7 @@ class BarChart {
         this.currentYear = 2007; 
         this.laneDividersCreated = false;
         this.isPlaying = false;
+        this.wasPlaying = undefined;
         this.playInterval = null;
         this.initialYear = 2006;
         this.filterState = { severity: 'all', pedAct: 'all', district: 'all', pedAge: 'all' };
@@ -607,12 +608,35 @@ class BarChart {
         // Add tooltip interactions to bars
         barsMerged
             .on("mouseover", function(event, d) {
-                const tooltipData = vis.calculateTooltipData(d.pedAct);
+                // Cancel any tooltip fade-out in progress
+                tooltip.interrupt();
+
+                // Pause autoplay if active
+                if (vis.isPlaying) {
+                    vis.stopPlay();
+                    vis.wasPlaying = true;
+                } else if (vis.wasPlaying === undefined) {
+                    vis.wasPlaying = false;
+                }
+
+                // Dim all other bars
+                barsMerged.transition()
+                    .duration(200)
+                    .style("opacity", b => b.pedAct === d.pedAct ? 1 : 0.3);
                 
+                // Calculate tooltip data
+                const tooltipData = vis.calculateTooltipData(d.pedAct);
+
+                // Show tooltip
+                tooltip
+                    .style("opacity", 1)
+                    .style("left", `${event.pageX + 15}px`)
+                    .style("top", `${event.pageY - 20}px`);
+
                 // Clear existing tooltip content
                 tooltip.html("");
                 
-                // Build tooltip content using D3
+                // Build tooltip content
                 tooltip.append('div')
                     .attr('class', 'tooltip-title')
                     .text(tooltipData.pedAct);
@@ -729,15 +753,33 @@ class BarChart {
                 
                 // Highlight the bar
                 d3.select(this)
-                    .attr("stroke", "#C75B4A")
+                    .attr("stroke", "#f3d8d4ff")
                     .attr("stroke-width", 2);
             })
             .on("mouseout", function() {
-                // Remove tooltip when not hovering on bar
-                tooltip.style("opacity", 0);
+                // Check if mouse moved directly onto another bar
+                const related = event.relatedTarget;
+
+                // Remove stroke
                 d3.select(this)
                     .attr("stroke", null)
-                    .attr("stroke-width", null);
+
+                const movedToBar = related && related.classList && related.classList.contains("bar");
+                if (movedToBar) return; // Don't hide tooltip if we moved to another bar
+
+                // Hide tooltip
+                tooltip.transition().duration(150).style("opacity", 0);
+                
+                // Restore full opacity to all bars
+                barsMerged.transition()
+                    .duration(300)
+                    .style("opacity", 1);
+
+                // Resume autoplay if it was previously running
+                if (vis.wasPlaying) {
+                    vis.startPlay();
+                }
+                vis.wasPlaying = undefined;
             });
 
         bars.exit().remove();
