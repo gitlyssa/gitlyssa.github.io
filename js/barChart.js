@@ -16,7 +16,7 @@ class BarChart {
         this.isPlaying = false;
         this.playInterval = null;
         this.initialYear = 2006;
-        this.filterState = { severity: 'all', pedAct: 'all', district: 'all' }; 
+        this.filterState = { severity: 'all', pedAct: 'all', district: 'all', pedAge: 'all' };
     }
 
     /*
@@ -34,8 +34,8 @@ class BarChart {
         vis.setupYearSlider();
         vis.setupPlayButton();
         vis.setupRestartButton();
-        this.bindTileFilters();
-        this.setupDropdownFilters();
+        vis.bindTileFilters();
+        vis.setupDropdownFilters();
 
         // Margins and dimensions
 		vis.margin = {top: 5, right: 5, bottom: 5, left: 5};
@@ -175,6 +175,11 @@ class BarChart {
         // district filter
         if (vis.filterState.district !== 'all' && Array.isArray(vis.filterState.district) && vis.filterState.district.length > 0) {
             vis.displayData = vis.displayData.filter(d => vis.filterState.district.includes(d.district));
+        }
+
+        // pedestrian age filter
+        if (vis.filterState.pedAge !== 'all' && Array.isArray(vis.filterState.pedAge) && vis.filterState.pedAge.length > 0) {
+            vis.displayData = vis.displayData.filter(d => vis.filterState.pedAge.includes(d.pedAge));
         }
 
         // Aggregate counts per pedestrian action (cumulative)
@@ -429,6 +434,10 @@ class BarChart {
         
         // Setup district filter
         setupFilter('district', uniqueDistricts, vis);
+
+        // Setup pedestrian age filter
+        const uniquePedAges = [...new Set(vis.data.map(d => d.pedAge).filter(d => d))].sort();
+        setupFilter('pedAge', uniquePedAges, vis);
     }
 
     /* Tooltip related methods --------------------------------------------------------------------------------- */
@@ -606,6 +615,18 @@ class BarChart {
                 item1.append('span')
                     .attr('class', 'tooltip-value')
                     .text(tooltipData.currentCount.toLocaleString());
+
+                // Percentage of total
+                const item3 = tooltip.append('div')
+                    .attr('class', 'tooltip-item');
+                
+                item3.append('span')
+                    .attr('class', 'tooltip-label')
+                    .text('Percentage of Total:');
+                
+                item3.append('span')
+                    .attr('class', 'tooltip-value')
+                    .text(`${tooltipData.percentage.toFixed(1)}%`);
                 
                 // Change from previous year
                 const item2 = tooltip.append('div')
@@ -627,17 +648,6 @@ class BarChart {
                     .attr('class', `tooltip-value ${increaseClass}`)
                     .text(`${increaseSign}${tooltipData.increase} (${increaseSign}${tooltipData.increasePercentage.toFixed(1)}%)`);
                 
-                // Percentage of total
-                const item3 = tooltip.append('div')
-                    .attr('class', 'tooltip-item');
-                
-                item3.append('span')
-                    .attr('class', 'tooltip-label')
-                    .text('Percentage of Total:');
-                
-                item3.append('span')
-                    .attr('class', 'tooltip-value')
-                    .text(`${tooltipData.percentage.toFixed(1)}%`);
                 
                 // Most common month
                 const item4 = tooltip.append('div')
@@ -918,12 +928,28 @@ function setupFilter(filterType, options, vis) {
 */
 function updateFilterButtonText(filterType, count, vis) {
     let button = d3.select(`#${filterType}-filter-btn`);
+    
     if (button.empty()) return;
 
-    let baseText = filterType === 'pedAct' ? 'Pedestrian Action' : 'District';
-    let isAll = (filterType === 'pedAct' && vis.filterState.pedAct === 'all') || 
-                (filterType === 'district' && vis.filterState.district === 'all');
+    let baseText;
     
+    // Determine filter label
+    if (filterType === 'pedAct') {
+        baseText = 'Pedestrian Action';
+    } else if (filterType === 'district') {
+        baseText = 'District';
+    } else if (filterType === 'pedAge') {
+        baseText = 'Pedestrian Age';
+    } else if (filterType === 'severity') {
+        baseText = 'Severity';
+    } else {
+        baseText = filterType;
+    }
+
+    // Check if all values are selected
+    let isAll = vis.filterState[filterType] === 'all';
+    
+    // Update label text
     button.select("span")
         .text(isAll ? baseText : (count > 0 ? `${baseText} (${count})` : baseText));
 }
