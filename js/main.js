@@ -15,6 +15,11 @@ const pedActMap = {
   "Walking on Roadway with Traffic": "Walking along road"
 };
 
+const pedAgeMap = {
+  "Over 95": "95+",
+  "unknown": "Undisclosed"
+}
+
 function classifySeverity(acclass){
   const s = String(acclass || '').toLowerCase().replace(/\s+/g,' ').trim();
   if (s.includes('non-fatal')) return 'nonfatal';
@@ -47,6 +52,7 @@ function loadData() {
         pedType: d.PEDTYPE,
         pedAct: pedActMap[d.PEDACT] || d.PEDACT,
         pedCond: d.PEDCOND,
+        pedAge: pedAgeMap[d.INVAGE] || d.INVAGE,
         timeBand: timeBandFromNUM(d.TIME),
         severity: classifySeverity(d.ACCLASS),
         district: d.DISTRICT

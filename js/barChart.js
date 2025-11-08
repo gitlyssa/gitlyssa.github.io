@@ -14,9 +14,10 @@ class BarChart {
         this.currentYear = 2007; 
         this.laneDividersCreated = false;
         this.isPlaying = false;
+        this.wasPlaying = undefined;
         this.playInterval = null;
-        this.initialYear = 2007;
-        this.filterState = { severity: 'all', pedAct: 'all', district: 'all' }; 
+        this.initialYear = 2006;
+        this.filterState = { severity: 'all', pedAct: 'all', district: 'all', pedAge: 'all' };
     }
 
     /*
@@ -30,19 +31,12 @@ class BarChart {
         // Process data and filter by current year
         vis.processData();
 
-        // Set up year slider
+        // Set up year slider, control buttons, and filters
         vis.setupYearSlider();
-        
-        // Set up play button
         vis.setupPlayButton();
-
-        // Set up restart button
         vis.setupRestartButton();
-
-        this.bindTileFilters();
-
-        // Set up dropdown filters
-        this.setupDropdownFilters();
+        vis.bindTileFilters();
+        vis.setupDropdownFilters();
 
         // Margins and dimensions
 		vis.margin = {top: 5, right: 5, bottom: 5, left: 5};
@@ -86,16 +80,13 @@ class BarChart {
 
         vis.updateVis();
         
-        // Create dynamic legend
-        // vis.createLegend();
-
-        // Responsive resize listener
+        // Responsive resize listener to handle window size changes
         window.addEventListener('resize', debounce(() => vis.handleResize(), 150));
-
     }
 
-
-    // Updated handleResize method
+    /*
+	 * Method that resizes visualization elements based on window size changes
+ 	*/
     handleResize() {
         const vis = this;
 
@@ -103,7 +94,7 @@ class BarChart {
         const container = document.getElementById(vis.parentElement);
         container.getBoundingClientRect(); // triggers reflow
 
-        // Get *latest* width and height
+        // Get updated width and height
         vis.width = container.clientWidth - vis.margin.left - vis.margin.right;
         vis.height = container.clientHeight - vis.margin.top - vis.margin.bottom;
 
@@ -121,50 +112,11 @@ class BarChart {
         vis.updateVis();
 
         // Update legend and timeline marker
-        // vis.createLegend();
         const timelineMarker = document.getElementById('timeline-marker');
         if (timelineMarker) {
             const percentage = ((vis.currentYear - 2006) / (2023 - 2006)) * 100;
             timelineMarker.style.left = percentage + '%';
         }
-    }
-
-
-    /*
-     * Create dynamic legend based on actual data
-     */
-    createLegend() {
-        let vis = this;
-        
-        const legendContainer = d3.select("#legend-container");
-        legendContainer.selectAll("*").remove(); // Clear existing legend
-        
-        // Show top 10 categories
-        const allCategories = vis.counts;
-        
-        // Create a scale for legend positioning that matches the road lanes exactly
-        const legendScale = d3.scaleBand()
-            .domain(d3.range(10)) // Use same 10 positions as bars
-            .range([12, 512]) // Account for road container margins (12px top + 500px road + 12px bottom = 524px total)
-            .padding(0.1); // Match the road padding exactly
-        
-        const legendItems = legendContainer.selectAll(".legend-item")
-            .data(allCategories)
-            .enter()
-            .append("div")
-            .attr("class", "legend-item")
-            .style("position", "absolute")
-            .style("top", (d, i) => legendScale(i) + "px")
-            .style("left", "10px")
-            .style("right", "10px");
-            
-        legendItems.append("div")
-            .attr("class", "legend-color")
-            .style("background-color", d => vis.colorScale(d.pedAct));
-            
-        legendItems.append("span")
-            .attr("class", "legend-text")
-            .text(d => d.pedAct);
     }
 
     /*
@@ -226,6 +178,11 @@ class BarChart {
             vis.displayData = vis.displayData.filter(d => vis.filterState.district.includes(d.district));
         }
 
+        // pedestrian age filter
+        if (vis.filterState.pedAge !== 'all' && Array.isArray(vis.filterState.pedAge) && vis.filterState.pedAge.length > 0) {
+            vis.displayData = vis.displayData.filter(d => vis.filterState.pedAge.includes(d.pedAge));
+        }
+
         // Aggregate counts per pedestrian action (cumulative)
         vis.counts = Array.from(
             d3.rollup(
@@ -240,6 +197,8 @@ class BarChart {
         vis.counts.sort((a, b) => b.count - a.count);
         vis.counts = vis.counts.slice(0, 10); // Always show top 10
     }
+
+    /* Timeline related methods --------------------------------------------------------------------------------- */
 
     /*
      * Set up year slider functionality
@@ -281,23 +240,7 @@ class BarChart {
             console.log('Initial year set to:', currentYearLabel.textContent);
         }
     }
-
-    setupRestartButton() {
-        let vis = this;
-        
-        const restartButton = document.querySelector('.restart-button');
-        if (!restartButton) {
-            console.log('Restart button not found');
-            return;
-        }
-        
-        restartButton.addEventListener('click', () => {
-            vis.restartTimeline();
-        });
-        
-        console.log('Restart button setup complete');
-    }
-
+    
     /*
      * Set up play button functionality
      */
@@ -316,50 +259,6 @@ class BarChart {
                 vis.startPlay();
             }
         });
-    }
-
-    /*
-     * Restart timeline to initial year
-     */
-    restartTimeline() {
-        let vis = this;
-        
-        // Stop auto-play if it's running
-        if (vis.isPlaying) {
-            vis.stopPlay();
-        }
-        
-        // Reset to initial year
-        vis.currentYear = vis.initialYear;
-        
-        // Update slider
-        const yearSlider = document.getElementById('year-slider');
-        if (yearSlider) {
-            yearSlider.value = vis.currentYear;
-        }
-        
-        // Update current year display
-        let currentYearLabel = document.getElementById('current-year');
-        if (!currentYearLabel) {
-            currentYearLabel = document.querySelector('.marker-label');
-        }
-        if (!currentYearLabel) {
-            currentYearLabel = document.querySelector('#timeline-marker .marker-label');
-        }
-        
-        if (currentYearLabel) {
-            currentYearLabel.textContent = vis.currentYear;
-        }
-        
-        // Update timeline marker position
-        const timelineMarker = document.querySelector('.timeline-marker');
-        if (timelineMarker) {
-            timelineMarker.style.left = `${((vis.currentYear - 2006) / (2023 - 2006)) * 100}%`;
-        }
-        
-        // Reprocess data and update visualization
-        vis.processData();
-        vis.updateVis();
     }
 
     /*
@@ -408,7 +307,6 @@ class BarChart {
             // Update visualization
             vis.processData();
             vis.updateVis();
-            // vis.createLegend();
             
             // Update timeline marker
             const timelineMarker = document.querySelector('.timeline-marker');
@@ -416,47 +314,6 @@ class BarChart {
                 timelineMarker.style.left = `${((vis.currentYear - 2006) / (2023 - 2006)) * 100}%`;
             }
         }, 1000); // 1 second between year changes
-    }
-
-    bindTileFilters(){
-    const vis = this;
-    const bar = document.getElementById('filter-bar');
-    if (!bar) return;
-
-    bar.addEventListener('click', (e)=>{
-        const btn = e.target.closest('.tile');
-        if (!btn) return;
-        const groupEl = btn.closest('.tile-group');
-        const group = groupEl?.getAttribute('data-group');
-        const value = btn.getAttribute('data-value');
-        if (!group || !value) return;
-
-        // single-select per group
-        groupEl.querySelectorAll('.tile').forEach(t => t.classList.remove('active'));
-        btn.classList.add('active');
-
-        if (group === 'severity') vis.filterState.severity = value;
-
-        vis.processData();
-        vis.updateVis();
-    });
-    }
-
-    /*
-     * Set up dropdown filters for pedestrian action and district
-     */
-    setupDropdownFilters() {
-        let vis = this;
-
-        // Get unique values
-        const uniquePedActs = [...new Set(vis.data.map(d => d.pedAct).filter(d => d))].sort();
-        const uniqueDistricts = [...new Set(vis.data.map(d => d.district).filter(d => d))].sort();
-
-        // Setup pedestrian action filter
-        setupFilter('pedAct', uniquePedActs, vis);
-        
-        // Setup district filter
-        setupFilter('district', uniqueDistricts, vis);
     }
 
     /*
@@ -476,161 +333,559 @@ class BarChart {
             vis.playInterval = null;
         }
     }
-
+    
     /*
- 	* Data wrangling
- 	*/
-	wrangleData(){
-		vis.updateVis();
-	}
-
-    /*
-	 * The drawing function - should use the D3 update sequence (enter, update, exit)
- 	* Function parameters only needed if different kinds of updates are needed
- 	*/
-
-    updateVis(){
-    const vis = this;
-    
-    // Update xScale based on current data
-    const maxCount = d3.max(vis.counts, d => d.count);
-    const maxBarWidth = vis.width * 0.75; // Use 75% of available width to leave more space for labels
-    
-    vis.xScale = d3.scaleLinear()
-        .range([0, maxBarWidth])
-        .domain([0, maxCount]);
-    
-    // Clear any existing stick figures to prevent duplicates
-    vis.svg.selectAll(".bar-icon").remove();
-    
-    const animationDelay = 50;
-    const barCount = vis.counts.length;
-
-    // Create horizontal bars (road lanes)
-    const bars = vis.svg.selectAll(".bar")
-        .data(vis.counts, d => d.pedAct); 
-
-    const barsEnter = bars.enter().append("rect")
-        .attr("class", "bar")
-        .attr("x", 0)
-        .attr("y", (d, i) => vis.yScale(i))
-        .attr("width", 0)
-        .attr("height", vis.yScale.bandwidth())
-        .attr("fill", d => vis.colorScale(d.pedAct))
-        .attr("rx", 12)
-        .attr("ry", 12);
-
-    const barsMerged = barsEnter.merge(bars);
-
-    barsMerged
-        .transition()
-        .duration(800)
-        .ease(d3.easeLinear)
-        .attr("width", d => vis.xScale(d.count))
-        .attr("y", (d, i) => vis.yScale(i));
-
-    bars.exit().remove();
-
-    // Add text labels showing accumulated numbers inside each bar
-    const labels = vis.svg.selectAll(".bar-label")
-        .data(vis.counts, d => d.pedAct);
-
-    const labelsEnter = labels.enter().append("text")
-        .attr("class", "bar-label")
-        .attr("x", 0)
-        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-        .attr("text-anchor", "end")
-        .attr("dy", "0.35em")
-        .style("font-family", "Arial, sans-serif")
-        .style("font-size", "12px")
-        .style("font-weight", "700")
-        .style("fill", "#FFFFFF")
-        .style("opacity", 0)
-        .text("0");
-
-    labelsEnter.merge(labels)
-        .transition()
-        .duration(800)
-        .ease(d3.easeLinear)
-        .style("opacity", 1)
-        .attr("x", d => Math.max(vis.xScale(d.count) - 5, 5))
-        .attr("text-anchor", "end")
-        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-        .tween("text", function(d) {
-            const current = this.textContent.replace(/,/g, '') || 0;
-            const target = d.count;
-            const interpolator = d3.interpolateNumber(current, target);
-            return function(t) {
-                const value = Math.round(interpolator(t));
-                d3.select(this).text(value.toLocaleString());
-            };
+     * Set up restart button functionality
+     */
+    setupRestartButton() {
+        let vis = this;
+        
+        const restartButton = document.querySelector('.restart-button');
+        if (!restartButton) return;
+        
+        restartButton.addEventListener('click', () => {
+            vis.restartTimeline();
         });
-
-    labels.exit().remove();
-
-    // Add legend labels at the far right of the chart area
-    const legendLabels = vis.svg.selectAll(".legend-label")
-        .data(vis.counts, d => d.pedAct);
-
-    const legendLabelsEnter = legendLabels.enter().append("text")
-        .attr("class", "legend-label")
-        .attr("x", vis.width - 10) // Position at far right with 10px padding
-        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-        .attr("text-anchor", "end") // Right-align text
-        .attr("dy", "0.35em")
-        .style("font-family", "Arial, sans-serif")
-        .style("font-size", "12px")
-        .style("font-weight", "400")
-        .style("fill", "#C75B4A")
-        .style("opacity", 0)
-        .text(d => d.pedAct);
-
-    legendLabelsEnter.merge(legendLabels)
-        .transition()
-        .duration(800)
-        .ease(d3.easeLinear)
-        .style("opacity", 1)
-        .attr("x", vis.width - 10) // Fixed position at far right
-        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-        .text(d => d.pedAct);
-
-    legendLabels.exit().remove();
-
-    // Create static lane dividers
-    if (!vis.laneDividersCreated) {
-        vis.svg.selectAll(".lane-divider").remove();
-        vis.createStaticLaneDividers();
-        vis.laneDividersCreated = true;
     }
 
-    // Add walking icons - position them closer to the numbers
-    const emojiIcons = vis.svg.selectAll(".emoji-icon")
-        .data(vis.counts, d => d.pedAct);
+    /*
+     * Restart timeline to initial year
+     */
+    restartTimeline() {
+        let vis = this;
+        
+        // Stop auto-play if it's running
+        if (vis.isPlaying) {
+            vis.stopPlay();
+        }
+        
+        // Reset to initial year
+        vis.currentYear = vis.initialYear;
+        
+        // Update slider
+        const yearSlider = document.getElementById('year-slider');
+        if (yearSlider) {
+            yearSlider.value = vis.currentYear;
+        }
+        
+        // Update current year display
+        let currentYearLabel = document.getElementById('current-year');
 
-    const emojiIconsEnter = emojiIcons.enter().append("text")
-        .attr("class", "emoji-icon")
-        .attr("x", 0)
-        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-        .attr("text-anchor", "start")
-        .attr("dy", "0.35em")
-        .style("font-size", "20px") // Slightly smaller to fit better
-        .style("opacity", 0)
-        .text("🚶‍♀️");
+        if (!currentYearLabel) {
+            currentYearLabel = document.querySelector('.marker-label');
+            currentYearLabel = document.querySelector('#timeline-marker .marker-label');
+        }
+        
+        if (currentYearLabel) {
+            currentYearLabel.textContent = vis.currentYear;
+        }
+        
+        // Update timeline marker position
+        const timelineMarker = document.querySelector('.timeline-marker');
+        if (timelineMarker) {
+            timelineMarker.style.left = `${((vis.currentYear - 2006) / (2023 - 2006)) * 100}%`;
+        }
+        
+        // Reprocess data and update visualization
+        vis.processData();
+        vis.updateVis();
+    }
 
-    emojiIconsEnter.merge(emojiIcons)
-        .transition()
-        .duration(800)
-        .ease(d3.easeLinear)
-        .style("opacity", 1)
-        .attr("x", d => Math.max(vis.xScale(d.count) - 10, 50) + 15)
-        .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
-        .text("🚶‍♀️");
+    /* Filter related methods --------------------------------------------------------------------------------- */
 
-    emojiIcons.exit().remove();
+    /*
+     * Applies severity filter to the data
+     */
+    bindTileFilters() {
+        const vis = this;
+        const bar = document.getElementById('filter-bar');
+        if (!bar) return;
+
+        bar.addEventListener('click', (e)=>{
+            const btn = e.target.closest('.tile');
+            if (!btn) return;
+            const groupEl = btn.closest('.tile-group');
+            const group = groupEl?.getAttribute('data-group');
+            const value = btn.getAttribute('data-value');
+            if (!group || !value) return;
+
+            // single-select per group
+            groupEl.querySelectorAll('.tile').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (group === 'severity') vis.filterState.severity = value;
+
+            vis.processData();
+            vis.updateVis();
+        });
+    }
+
+    /*
+     * Set up dropdown filters for pedestrian action and district
+     */
+    setupDropdownFilters() {
+        let vis = this;
+
+        // Get unique values
+        const uniquePedActs = [...new Set(vis.data.map(d => d.pedAct).filter(d => d))].sort();
+        const uniqueDistricts = [...new Set(vis.data.map(d => d.district).filter(d => d))].sort();
+
+        // Setup pedestrian action filter
+        setupFilter('pedAct', uniquePedActs, vis);
+        
+        // Setup district filter
+        setupFilter('district', uniqueDistricts, vis);
+
+        // Setup pedestrian age filter
+        const uniquePedAges = [...new Set(vis.data.map(d => d.pedAge).filter(d => d))].sort();
+        setupFilter('pedAge', uniquePedAges, vis);
+    }
+
+    /* Tooltip related methods --------------------------------------------------------------------------------- */
+
+    /*
+    * Calculate tooltip data for a specific pedestrian action
+    */
+    calculateTooltipData(pedAct) {
+        let vis = this;
+
+        // Get current year data for this pedestrian action (single year only)
+        const currentYearData = vis.data.filter(d => {
+            const dateStr = d.date;
+            const yearMatch = dateStr.match(/\/(\d{4})\s/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
+            return year === vis.currentYear && d.pedAct === pedAct;
+        });
+        const currentCount = currentYearData.length;
+
+        // Get previous year data (single year)
+        const previousYear = vis.currentYear - 1;
+        const previousYearData = vis.data.filter(d => {
+            const dateStr = d.date;
+            const yearMatch = dateStr.match(/\/(\d{4})\s/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
+            return year === previousYear && d.pedAct === pedAct;
+        });
+        const previousCount = previousYearData.length;
+
+        // Calculate increase from previous year
+        let increase = currentCount - previousCount;
+        let increasePercentage = previousCount > 0
+            ? ((increase / previousCount) * 100)
+            : (currentCount > 0 ? 100 : 0);
+
+        // Calculate percentage among all pedestrian actions for current year
+        const totalCurrentYear = vis.data.filter(d => {
+            const dateStr = d.date;
+            const yearMatch = dateStr.match(/\/(\d{4})\s/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
+            return year === vis.currentYear;
+        }).length;
+
+        const percentage = totalCurrentYear > 0 ? ((currentCount / totalCurrentYear) * 100) : 0;
+
+        // Find most common month
+        const monthCounts = {};
+        currentYearData.forEach(d => {
+            const dateStr = d.date;
+            const monthMatch = dateStr.match(/(\d{1,2})\/\d{1,2}\/(\d{4})/);
+            if (monthMatch) {
+                const month = parseInt(monthMatch[1]);
+                monthCounts[month] = (monthCounts[month] || 0) + 1;
+            }
+        });
+
+        let mostCommonMonth = "N/A";
+        let maxMonthCount = 0;
+        Object.entries(monthCounts).forEach(([month, count]) => {
+            if (count > maxMonthCount) {
+                maxMonthCount = count;
+                mostCommonMonth = this.getMonthName(parseInt(month));
+            }
+        });
+
+        // District concentration
+        const districtCounts = {};
+        currentYearData.forEach(d => {
+            if (d.district) {
+                districtCounts[d.district] = (districtCounts[d.district] || 0) + 1;
+            }
+        });
+
+        // Sort districts by count (descending)
+        const sortedDistricts = Object.entries(districtCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3); // Top 3 districts
+
+        // Calculate concentration metrics
+        const topDistrict = sortedDistricts[0] ? sortedDistricts[0][0] : "N/A";
+        const topDistrictCount = sortedDistricts[0] ? sortedDistricts[0][1] : 0;
+        const topDistrictPercentage = currentCount > 0 ? ((topDistrictCount / currentCount) * 100).toFixed(1) : 0;
+
+        // Calculate top 3 districts concentration
+        const top3Total = sortedDistricts.reduce((sum, district) => sum + district[1], 0);
+        const top3Percentage = currentCount > 0 ? ((top3Total / currentCount) * 100).toFixed(1) : 0;
+
+        return {
+            pedAct: pedAct,
+            currentCount: currentCount,
+            previousCount: previousCount,
+            increase: increase,
+            increasePercentage: increasePercentage,
+            percentage: percentage,
+            mostCommonMonth: mostCommonMonth,
+            topDistrict: topDistrict,
+            topDistrictPercentage: topDistrictPercentage,
+            topDistrictCount: topDistrictCount,
+            top3Districts: sortedDistricts,
+            top3Percentage: top3Percentage
+        };
+    }
+
+    /*
+    * Convert month number to month name
+    */
+    getMonthName(month) {
+        const months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        return months[month - 1] || "Unknown";
+    }
+
+    /*
+	* The drawing function - should use the D3 update sequence (enter, update, exit)
+ 	* Function parameters only needed if different kinds of updates are needed
+ 	*/
+    updateVis(){
+        const vis = this;
+        
+        // Update xScale based on current data
+        const maxCount = d3.max(vis.counts, d => d.count);
+        const maxBarWidth = vis.width * 0.75;
+        
+        vis.xScale = d3.scaleLinear()
+            .range([0, maxBarWidth])
+            .domain([0, maxCount]);
+        
+        // Clear any existing stick figures to prevent duplicates
+        vis.svg.selectAll(".bar-icon").remove();
+        
+        // Create/update tooltip div
+        let tooltip = d3.select("body").selectAll(".tooltip").data([0]);
+        tooltip = tooltip.enter()
+            .append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0)
+            .merge(tooltip);
+
+        const animationDelay = 50;
+        const barCount = vis.counts.length;
+
+        // Create horizontal bars (road lanes)
+        const bars = vis.svg.selectAll(".bar")
+            .data(vis.counts, d => d.pedAct); 
+
+        const barsEnter = bars.enter().append("rect")
+            .attr("class", "bar")
+            .attr("x", 0)
+            .attr("y", (d, i) => vis.yScale(i))
+            .attr("width", 0)
+            .attr("height", vis.yScale.bandwidth())
+            .attr("fill", d => vis.colorScale(d.pedAct))
+            .attr("rx", 12)
+            .attr("ry", 12);
+
+        const barsMerged = barsEnter.merge(bars);
+
+        barsMerged
+            .transition()
+            .duration(800)
+            .ease(d3.easeLinear)
+            .attr("width", d => vis.xScale(d.count))
+            .attr("y", (d, i) => vis.yScale(i));
+
+        // Add tooltip interactions to bars
+        barsMerged
+            .on("mouseover", function(event, d) {
+                // Cancel any tooltip fade-out in progress
+                tooltip.interrupt();
+
+                // Pause autoplay if active
+                if (vis.isPlaying) {
+                    vis.stopPlay();
+                    vis.wasPlaying = true;
+                } else if (vis.wasPlaying === undefined) {
+                    vis.wasPlaying = false;
+                }
+
+                // Dim all other bars
+                barsMerged.transition()
+                    .duration(200)
+                    .style("opacity", b => b.pedAct === d.pedAct ? 1 : 0.3);
+                
+                // Calculate tooltip data
+                const tooltipData = vis.calculateTooltipData(d.pedAct);
+
+                // Show tooltip
+                tooltip
+                    .style("opacity", 1)
+                    .style("left", `${event.pageX + 15}px`)
+                    .style("top", `${event.pageY - 20}px`);
+
+                // Clear existing tooltip content
+                tooltip.html("");
+                
+                // Build tooltip content
+                tooltip.append('div')
+                    .attr('class', 'tooltip-title')
+                    .text(tooltipData.pedAct);
+                
+                // Current year total
+                const item1 = tooltip.append('div')
+                    .attr('class', 'tooltip-item');
+                
+                item1.append('span')
+                    .attr('class', 'tooltip-label')
+                    .text('Current Year Total:');
+                
+                item1.append('span')
+                    .attr('class', 'tooltip-value')
+                    .text(tooltipData.currentCount.toLocaleString());
+
+
+                // Percentage of total
+                const item3 = tooltip.append('div')
+                    .attr('class', 'tooltip-item');
+                
+                item3.append('span')
+                    .attr('class', 'tooltip-label')
+                    .text('Percentage of Total:');
+                
+                item3.append('span')
+                    .attr('class', 'tooltip-value')
+                    .text(`${tooltipData.percentage.toFixed(1)}%`);
+
+                
+                // Change from previous year
+                if (tooltipData.previousCount > 0) {
+                    const item2 = tooltip.append('div')
+                        .attr('class', 'tooltip-item');
+
+                    const previousYearText = `Change from previous year (non-cumulative):`;
+                    const increaseClass = tooltipData.increase > 0
+                        ? 'tooltip-positive'
+                        : tooltipData.increase < 0
+                            ? 'tooltip-negative'
+                            : 'tooltip-neutral';
+                    const increaseSign = tooltipData.increase > 0 ? '+' : '';
+
+                    // Smart percentage formatting: 12%, 12.5%, -3%
+                    const formattedPercent = (() => {
+                        const val = tooltipData.increasePercentage;
+                        const absVal = Math.abs(val);
+                        const sign = val > 0 ? '+' : val < 0 ? '' : '';
+                        return absVal % 1 === 0
+                            ? `${sign}${val.toFixed(0)}%`
+                            : `${sign}${val.toFixed(1)}%`;
+                    })();
+
+                    item2.append('span')
+                        .attr('class', 'tooltip-label')
+                        .text(previousYearText);
+
+                    item2.append('span')
+                        .attr('class', `tooltip-value ${increaseClass}`)
+                        .text(`${increaseSign}${tooltipData.increase} (${formattedPercent})`);
+                }
+                
+                
+                // Most common month
+                const item4 = tooltip.append('div')
+                    .attr('class', 'tooltip-item');
+                
+                item4.append('span')
+                    .attr('class', 'tooltip-label')
+                    .text('Most Common Month:');
+                
+                item4.append('span')
+                    .attr('class', 'tooltip-value')
+                    .text(tooltipData.mostCommonMonth);
+                
+                tooltip
+                    .style("opacity", 1)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 10) + "px");
+
+                // Top districts
+                if (tooltipData.top3Districts.length > 1) {
+                    const itemTop3 = tooltip.append('div')
+                        .attr('class', 'tooltip-item')
+                        .style('flex-direction', 'column')
+                        .style('align-items', 'flex-start');
+                    
+                    itemTop3.append('span')
+                        .attr('class', 'tooltip-label')
+                        .text('District Concentration:');
+                    
+                    // Add each top district
+                    tooltipData.top3Districts.forEach((district, index) => {
+                        const districtPercentage = ((district[1] / tooltipData.currentCount) * 100).toFixed(1);
+                        const districtItem = itemTop3.append('div')
+                            .attr('class', 'tooltip-district-item')
+                            .style('display', 'flex')
+                            .style('justify-content', 'space-between')
+                            .style('width', '100%')
+                            .style('font-size', '11px')
+                            .style('margin-top', '2px');
+                        
+                        districtItem.append('span')
+                            .attr('class', 'tooltip-label')
+                            .style('font-weight', 'normal')
+                            .text(`${index + 1}. ${district[0]}`);
+                        
+                        districtItem.append('span')
+                            .attr('class', 'tooltip-value')
+                            .style('font-weight', 'normal')
+                            .text(`${district[1]} (${districtPercentage}%)`);
+                    });
+                }
+                
+                // Highlight the bar
+                d3.select(this)
+                    .attr("stroke", "#f3d8d4ff")
+                    .attr("stroke-width", 2);
+            })
+            .on("mouseout", function() {
+                // Check if mouse moved directly onto another bar
+                const related = event.relatedTarget;
+
+                // Remove stroke
+                d3.select(this)
+                    .attr("stroke", null)
+
+                const movedToBar = related && related.classList && related.classList.contains("bar");
+                if (movedToBar) return; // Don't hide tooltip if we moved to another bar
+
+                // Hide tooltip
+                tooltip.transition().duration(150).style("opacity", 0);
+                
+                // Restore full opacity to all bars
+                barsMerged.transition()
+                    .duration(300)
+                    .style("opacity", 1);
+
+                // Resume autoplay if it was previously running
+                if (vis.wasPlaying) {
+                    vis.startPlay();
+                }
+                vis.wasPlaying = undefined;
+            });
+
+        bars.exit().remove();
+
+        // Add text labels showing accumulated numbers inside each bar
+        const labels = vis.svg.selectAll(".bar-label")
+            .data(vis.counts, d => d.pedAct);
+
+        const labelsEnter = labels.enter().append("text")
+            .attr("class", "bar-label")
+            .attr("x", 0)
+            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+            .attr("text-anchor", "end")
+            .attr("dy", "0.35em")
+            .style("font-family", "Arial, sans-serif")
+            .style("font-size", "12px")
+            .style("font-weight", "700")
+            .style("fill", "#FFFFFF")
+            .style("opacity", 0)
+            .text("0");
+
+        labelsEnter.merge(labels)
+            .transition()
+            .duration(800)
+            .ease(d3.easeLinear)
+            .style("opacity", 1)
+            .attr("x", d => Math.max(vis.xScale(d.count) - 5, 5))
+            .attr("text-anchor", "end")
+            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+            .tween("text", function(d) {
+                const current = this.textContent.replace(/,/g, '') || 0;
+                const target = d.count;
+                const interpolator = d3.interpolateNumber(current, target);
+                return function(t) {
+                    const value = Math.round(interpolator(t));
+                    d3.select(this).text(value.toLocaleString());
+                };
+            });
+
+        labels.exit().remove();
+
+        // Add legend labels at the far right of the chart area
+        const legendLabels = vis.svg.selectAll(".legend-label")
+            .data(vis.counts, d => d.pedAct);
+
+        const legendLabelsEnter = legendLabels.enter().append("text")
+            .attr("class", "legend-label")
+            .attr("x", vis.width - 10)
+            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+            .attr("text-anchor", "end")
+            .attr("dy", "0.35em")
+            .style("font-family", "Arial, sans-serif")
+            .style("font-size", "12px")
+            .style("font-weight", "400")
+            .style("fill", "#C75B4A")
+            .style("opacity", 0)
+            .text(d => d.pedAct);
+
+        legendLabelsEnter.merge(legendLabels)
+            .transition()
+            .duration(800)
+            .ease(d3.easeLinear)
+            .style("opacity", 1)
+            .attr("x", vis.width - 10)
+            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+            .text(d => d.pedAct);
+
+        legendLabels.exit().remove();
+
+        // Create static lane dividers
+        if (!vis.laneDividersCreated) {
+            vis.svg.selectAll(".lane-divider").remove();
+            vis.createStaticLaneDividers();
+            vis.laneDividersCreated = true;
+        }
+
+        // Add walking icons - position them closer to the numbers
+        const emojiIcons = vis.svg.selectAll(".emoji-icon")
+            .data(vis.counts, d => d.pedAct);
+
+        const emojiIconsEnter = emojiIcons.enter().append("text")
+            .attr("class", "emoji-icon")
+            .attr("x", 0)
+            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+            .attr("text-anchor", "start")
+            .attr("dy", "0.35em")
+            .style("font-size", "20px")
+            .style("opacity", 0)
+            .text("🚶‍♀️");
+
+        emojiIconsEnter.merge(emojiIcons)
+            .transition()
+            .duration(800)
+            .ease(d3.easeLinear)
+            .style("opacity", 1)
+            .attr("x", d => Math.max(vis.xScale(d.count) - 10, 50) + 15)
+            .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
+            .text("🚶‍♀️");
+
+        emojiIcons.exit().remove();
     }
 }
 
-
+/* 
+* Clears and resets timeout (debuff time to resize window) 
+*/
 function debounce(func, wait) {
   let timeout;
   return function() {
@@ -639,7 +894,9 @@ function debounce(func, wait) {
   };
 }
 
-// Simple filter setup function using D3 patterns
+/*
+* Simple filter setup function using D3 patterns
+*/
 function setupFilter(filterType, options, vis) {
     // Prepare data: add "All" option first
     let filterData = [{value: 'all', label: 'All', checked: true}];
@@ -735,15 +992,33 @@ function setupFilter(filterType, options, vis) {
     });
 }
 
-// Simple function to update filter button text
+/*
+* Simple function to update filter button text
+*/
 function updateFilterButtonText(filterType, count, vis) {
     let button = d3.select(`#${filterType}-filter-btn`);
+
     if (button.empty()) return;
 
-    let baseText = filterType === 'pedAct' ? 'Pedestrian Action' : 'District';
-    let isAll = (filterType === 'pedAct' && vis.filterState.pedAct === 'all') || 
-                (filterType === 'district' && vis.filterState.district === 'all');
+    let baseText;
     
+    // Determine filter label
+    if (filterType === 'pedAct') {
+        baseText = 'Pedestrian Action';
+    } else if (filterType === 'district') {
+        baseText = 'District';
+    } else if (filterType === 'pedAge') {
+        baseText = 'Pedestrian Age';
+    } else if (filterType === 'severity') {
+        baseText = 'Severity';
+    } else {
+        baseText = filterType;
+    }
+
+    // Check if all values are selected
+    let isAll = vis.filterState[filterType] === 'all';
+    
+    // Update label text
     button.select("span")
         .text(isAll ? baseText : (count > 0 ? `${baseText} (${count})` : baseText));
 }
