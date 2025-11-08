@@ -1035,14 +1035,14 @@ class BarChart {
                 // Calculate tooltip data
                 const tooltipData = vis.calculateTooltipData(d.pedAct);
 
-                // Show tooltip
+                // Clear existing tooltip content first
+                tooltip.html("");
+                
+                // Position tooltip temporarily to get dimensions
                 tooltip
-                    .style("opacity", 1)
+                    .style("opacity", 0)
                     .style("left", `${event.pageX + 15}px`)
                     .style("top", `${event.pageY - 20}px`);
-
-                // Clear existing tooltip content
-                tooltip.html("");
                 
                 // Build tooltip content
                 tooltip.append('div')
@@ -1170,6 +1170,49 @@ class BarChart {
                             .text(`${district[1]} (${districtPercentage}%)`);
                     });
                 }
+                
+                // Get tooltip dimensions after content is added
+                const tooltipNode = tooltip.node();
+                const tooltipRect = tooltipNode.getBoundingClientRect();
+                const tooltipWidth = tooltipRect.width;
+                const tooltipHeight = tooltipRect.height;
+                
+                // Calculate viewport boundaries
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const padding = 10; // Padding from edges
+                
+                // Calculate optimal position
+                let left = event.pageX + 15;
+                let top = event.pageY - 20;
+                
+                // Check right edge overflow
+                if (left + tooltipWidth + padding > viewportWidth) {
+                    // Position to the left of cursor instead
+                    left = event.pageX - tooltipWidth - 15;
+                }
+                
+                // Check left edge overflow
+                if (left < padding) {
+                    left = padding;
+                }
+                
+                // Check bottom edge overflow
+                if (top + tooltipHeight + padding > viewportHeight) {
+                    // Position above cursor instead
+                    top = event.pageY - tooltipHeight - 20;
+                }
+                
+                // Check top edge overflow
+                if (top < padding) {
+                    top = padding;
+                }
+                
+                // Apply final position and show
+                tooltip
+                    .style("left", `${left}px`)
+                    .style("top", `${top}px`)
+                    .style("opacity", 1);
                 
                 // Highlight the bar
                 d3.select(this)
