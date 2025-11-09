@@ -18,6 +18,8 @@ class BarChart {
         this.playInterval = null;
         this.initialYear = 2006;
         this.filterState = { severity: 'all', pedAct: 'all', district: 'all', pedAge: 'all' };
+        this.lastHighlightYear = null; // Track last year we showed highlight for
+        this.yearHighlights = null; // Will store calculated highlights
     }
 
     /*
@@ -28,6 +30,9 @@ class BarChart {
 
         vis.data = vis.data.filter(d => d.pedAct)
 
+        // Calculate year highlights
+        vis.calculateYearHighlights();
+        
         // Process data and filter by current year
         vis.processData();
 
@@ -39,7 +44,7 @@ class BarChart {
         vis.setupDropdownFilters();
 
         // Margins and dimensions
-		vis.margin = {top: 5, right: 5, bottom: 5, left: 5};
+		vis.margin = {top: 5, right: 5, bottom: 30, left: 150};
 		vis.width = document.getElementById(vis.parentElement).getBoundingClientRect().width - vis.margin.left - vis.margin.right;
 		vis.height = document.getElementById(vis.parentElement).getBoundingClientRect().height - vis.margin.top - vis.margin.bottom;
 
@@ -148,6 +153,62 @@ class BarChart {
     }
 
     /*
+     * Calculate maximum count across all years for fixed axis scale
+     */
+    calculateMaxCount() {
+        let vis = this;
+        
+        // Calculate max count for each year from 2006 to 2023
+        let maxCount = 0;
+        for (let year = 2006; year <= 2023; year++) {
+            const yearData = vis.data.filter(d => {
+                const dateStr = d.date;
+                const yearMatch = dateStr.match(/\/(\d{4})\s/);
+                const dataYear = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
+                return dataYear >= 2006 && dataYear <= year;
+            });
+            
+            // Apply same filters as processData
+            let filteredData = yearData;
+            if (vis.filterState.severity === 'fatal') {
+                filteredData = filteredData.filter(d => d.severity === 'fatal');
+            } else if (vis.filterState.severity === 'nonfatal') {
+                filteredData = filteredData.filter(d => d.severity === 'nonfatal');
+            }
+            
+            if (vis.filterState.pedAct !== 'all' && Array.isArray(vis.filterState.pedAct) && vis.filterState.pedAct.length > 0) {
+                filteredData = filteredData.filter(d => vis.filterState.pedAct.includes(d.pedAct));
+            }
+            
+            if (vis.filterState.district !== 'all' && Array.isArray(vis.filterState.district) && vis.filterState.district.length > 0) {
+                filteredData = filteredData.filter(d => vis.filterState.district.includes(d.district));
+            }
+            
+            if (vis.filterState.pedAge !== 'all' && Array.isArray(vis.filterState.pedAge) && vis.filterState.pedAge.length > 0) {
+                filteredData = filteredData.filter(d => vis.filterState.pedAge.includes(d.pedAge));
+            }
+            
+            // Aggregate counts per pedestrian action
+            const counts = Array.from(
+                d3.rollup(
+                    filteredData,
+                    v => v.length,
+                    d => d.pedAct
+                ),
+                ([pedAct, count]) => ({ pedAct, count })
+            );
+            
+            const yearMax = d3.max(counts, d => d.count) || 0;
+            if (yearMax > maxCount) {
+                maxCount = yearMax;
+            }
+        }
+        
+        // Round up to a nice number for the axis
+        vis.maxCountForAxis = Math.ceil(maxCount * 1.1);
+    }
+
+    /*
      * Process data with cumulative accumulation up to current year
      */
     processData() {
@@ -198,6 +259,161 @@ class BarChart {
         vis.counts = vis.counts.slice(0, 10); // Always show top 10
     }
 
+    /*
+     * Calculate year highlights (e.g., year with most collisions)
+     */
+    calculateYearHighlights() {
+        let vis = this;
+        
+        // Calculate total collisions per year
+        const yearCounts = {};
+        for (let year = 2006; year <= 2023; year++) {
+            const yearData = vis.data.filter(d => {
+                const dateStr = d.date;
+                const yearMatch = dateStr.match(/\/(\d{4})\s/);
+                const dataYear = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
+                return dataYear === year;
+            });
+            yearCounts[year] = yearData.length;
+        }
+        
+        // Find year with most collisions
+        let maxYear = 2006;
+        let maxCount = yearCounts[2006];
+        for (let year = 2007; year <= 2023; year++) {
+            if (yearCounts[year] > maxCount) {
+                maxCount = yearCounts[year];
+                maxYear = year;
+            }
+        }
+        
+        // Store highlights
+        vis.yearHighlights = {
+            maxYear: maxYear,
+            maxCount: maxCount
+        };
+    }
+
+    /*
+     * Check and show highlight pop-up if needed
+     */
+    checkAndShowHighlight() {
+        let vis = this;
+        
+        if (!vis.yearHighlights) return;
+        
+        // Only show if we haven't shown it for this year yet
+        if (vis.lastHighlightYear === vis.currentYear) return;
+        
+        // Check if current year matches a highlight
+        if (vis.currentYear === vis.yearHighlights.maxYear) {
+            vis.showHighlightPopup({
+                year: vis.currentYear,
+                title: `Year Highlight: ${vis.currentYear}`,
+                message: `This year had the most collisions with ${vis.yearHighlights.maxCount.toLocaleString()} total collisions.`
+            });
+            vis.lastHighlightYear = vis.currentYear;
+        }
+    }
+
+    /*
+     * Show highlight pop-up
+     */
+    showHighlightPopup(highlight) {
+        let vis = this;
+        
+        // Remove existing pop-up if any
+        d3.selectAll('.year-highlight-popup').remove();
+        
+        // Get road container position for positioning
+        const roadContainer = document.querySelector('.road-container');
+        const roadRect = roadContainer ? roadContainer.getBoundingClientRect() : null;
+        
+        // Create pop-up with glass-like effect
+        const popup = d3.select('body')
+            .append('div')
+            .attr('class', 'year-highlight-popup')
+            .style('position', 'fixed')
+            .style('bottom', roadRect ? `${window.innerHeight - roadRect.bottom + 35}px` : '35px')
+            .style('right', roadRect ? `${window.innerWidth - roadRect.right + 30}px` : '30px')
+            .style('background', '#fff')
+            .style('padding', '20px 30px')
+            .style('border-radius', '8px')
+            .style('box-shadow', '0 4px 20px rgba(0, 0, 0, 0.2)')
+            .style('z-index', '10000')
+            .style('max-width', '400px')
+            .style('opacity', 0);
+        
+        // Add close button (X) in top right
+        const closeBtn = popup.append('button')
+            .attr('class', 'highlight-close')
+            .style('position', 'absolute')
+            .style('top', '10px')
+            .style('right', '10px')
+            .style('background', 'transparent')
+            .style('color', '#333')
+            .style('border', 'none')
+            .style('padding', '5px 10px')
+            .style('border-radius', '4px')
+            .style('cursor', 'pointer')
+            .style('font-family', 'Arial, sans-serif')
+            .style('font-size', '20px')
+            .style('font-weight', 'bold')
+            .style('line-height', '1')
+            .style('width', '30px')
+            .style('height', '30px')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .text('×')
+            .on('click', function() {
+                popup.transition()
+                    .duration(300)
+                    .style('opacity', 0)
+                    .remove();
+            })
+            .on('mouseover', function() {
+                d3.select(this).style('background', '#f0f0f0');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('background', 'transparent');
+            });
+        
+        // Add content
+        popup.append('div')
+            .attr('class', 'highlight-title')
+            .style('font-family', 'Playfair Display, serif')
+            .style('font-size', '24px')
+            .style('font-weight', '700')
+            .style('color', '#C75B4A')
+            .style('margin-bottom', '10px')
+            .style('padding-right', '30px')
+            .text(highlight.title);
+        
+        popup.append('div')
+            .attr('class', 'highlight-message')
+            .style('font-family', 'Arial, sans-serif')
+            .style('font-size', '14px')
+            .style('color', '#333')
+            .style('line-height', '1.5')
+            .text(highlight.message);
+        
+        // Animate in
+        popup.transition()
+            .duration(300)
+            .style('opacity', 1);
+        
+        // Auto-close after 5 seconds
+        setTimeout(() => {
+            if (popup.node().parentNode) {
+                popup.transition()
+                    .duration(300)
+                    .style('opacity', 0)
+                    .remove();
+            }
+        }, 5000);
+    }
+
     /* Timeline related methods --------------------------------------------------------------------------------- */
 
     /*
@@ -229,6 +445,9 @@ class BarChart {
             // Reprocess data and update visualization
             vis.processData();
             vis.updateVis();
+            
+            // Check for highlights
+            vis.checkAndShowHighlight();
             // vis.createLegend();
         });
         
@@ -278,6 +497,7 @@ class BarChart {
             vis.currentYear++;
             if (vis.currentYear > 2023) {
                 vis.currentYear = 2006; // Loop back to start
+                vis.lastHighlightYear = null; // Reset highlight tracking when looping
             }
             
             // Update slider
@@ -307,6 +527,9 @@ class BarChart {
             // Update visualization
             vis.processData();
             vis.updateVis();
+            
+            // Check for highlights
+            vis.checkAndShowHighlight();
             
             // Update timeline marker
             const timelineMarker = document.querySelector('.timeline-marker');
@@ -361,6 +584,7 @@ class BarChart {
         
         // Reset to initial year
         vis.currentYear = vis.initialYear;
+        vis.lastHighlightYear = null; // Reset highlight tracking
         
         // Update slider
         const yearSlider = document.getElementById('year-slider');
@@ -449,23 +673,52 @@ class BarChart {
     calculateTooltipData(pedAct) {
         let vis = this;
 
-        // Get current year data for this pedestrian action (single year only)
-        const currentYearData = vis.data.filter(d => {
+        // Helper function to apply filters to data
+        const applyFilters = (data) => {
+            let filtered = data;
+            
+            // severity filter
+            if (vis.filterState.severity === 'fatal') {
+                filtered = filtered.filter(d => d.severity === 'fatal');
+            } else if (vis.filterState.severity === 'nonfatal') {
+                filtered = filtered.filter(d => d.severity === 'nonfatal');
+            }
+
+            // pedestrian action filter
+            if (vis.filterState.pedAct !== 'all' && Array.isArray(vis.filterState.pedAct) && vis.filterState.pedAct.length > 0) {
+                filtered = filtered.filter(d => vis.filterState.pedAct.includes(d.pedAct));
+            }
+
+            // district filter
+            if (vis.filterState.district !== 'all' && Array.isArray(vis.filterState.district) && vis.filterState.district.length > 0) {
+                filtered = filtered.filter(d => vis.filterState.district.includes(d.district));
+            }
+
+            // pedestrian age filter
+            if (vis.filterState.pedAge !== 'all' && Array.isArray(vis.filterState.pedAge) && vis.filterState.pedAge.length > 0) {
+                filtered = filtered.filter(d => vis.filterState.pedAge.includes(d.pedAge));
+            }
+            
+            return filtered;
+        };
+
+        // Get current year data for this pedestrian action (single year only) with filters applied
+        const currentYearData = applyFilters(vis.data.filter(d => {
             const dateStr = d.date;
             const yearMatch = dateStr.match(/\/(\d{4})\s/);
             const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
             return year === vis.currentYear && d.pedAct === pedAct;
-        });
+        }));
         const currentCount = currentYearData.length;
 
-        // Get previous year data (single year)
+        // Get previous year data (single year) with filters applied
         const previousYear = vis.currentYear - 1;
-        const previousYearData = vis.data.filter(d => {
+        const previousYearData = applyFilters(vis.data.filter(d => {
             const dateStr = d.date;
             const yearMatch = dateStr.match(/\/(\d{4})\s/);
             const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
             return year === previousYear && d.pedAct === pedAct;
-        });
+        }));
         const previousCount = previousYearData.length;
 
         // Calculate increase from previous year
@@ -474,13 +727,22 @@ class BarChart {
             ? ((increase / previousCount) * 100)
             : (currentCount > 0 ? 100 : 0);
 
-        // Calculate percentage among all pedestrian actions for current year
-        const totalCurrentYear = vis.data.filter(d => {
+        // Calculate cumulative total (from 2006 to current year) with filters applied
+        const cumulativeData = applyFilters(vis.data.filter(d => {
+            const dateStr = d.date;
+            const yearMatch = dateStr.match(/\/(\d{4})\s/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
+            return year >= 2006 && year <= vis.currentYear && d.pedAct === pedAct;
+        }));
+        const cumulativeCount = cumulativeData.length;
+
+        // Calculate percentage among all pedestrian actions for current year (with filters applied)
+        const totalCurrentYear = applyFilters(vis.data.filter(d => {
             const dateStr = d.date;
             const yearMatch = dateStr.match(/\/(\d{4})\s/);
             const year = yearMatch ? parseInt(yearMatch[1]) : new Date(dateStr).getFullYear();
             return year === vis.currentYear;
-        }).length;
+        })).length;
 
         const percentage = totalCurrentYear > 0 ? ((currentCount / totalCurrentYear) * 100) : 0;
 
@@ -528,6 +790,7 @@ class BarChart {
 
         return {
             pedAct: pedAct,
+            cumulativeCount: cumulativeCount,
             currentCount: currentCount,
             previousCount: previousCount,
             increase: increase,
@@ -560,13 +823,158 @@ class BarChart {
     updateVis(){
         const vis = this;
         
-        // Update xScale based on current data
+        // Update xScale based on current data (for bars and axis - they move together)
         const maxCount = d3.max(vis.counts, d => d.count);
-        const maxBarWidth = vis.width * 0.75;
+        // Add padding at the end for emoji (about 40px)
+        const endPadding = 40;
+        const maxBarWidth = vis.width - endPadding;
         
         vis.xScale = d3.scaleLinear()
             .range([0, maxBarWidth])
             .domain([0, maxCount]);
+        
+        // Create/update road background rectangle (starts where bars start)
+        vis.svg.selectAll(".road-background").remove();
+        // Insert at the beginning so it appears behind all other elements
+        vis.svg.insert("rect", ":first-child")
+            .attr("class", "road-background")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", vis.width)
+            .attr("height", vis.height)
+            .attr("fill", "#7A8D8E") // Muted blue-grey road color
+            .attr("opacity", 1);
+        
+        // Create/update road shoulders (top and bottom) - start where bars start
+        vis.svg.selectAll(".road-shoulder-top, .road-shoulder-bottom").remove();
+        // Top shoulder
+        vis.svg.insert("rect", ":first-child")
+            .attr("class", "road-shoulder-top")
+            .attr("x", 0)
+            .attr("y", -12)
+            .attr("width", vis.width)
+            .attr("height", 8)
+            .attr("fill", "#92C7B9") // Light mint green
+            .attr("opacity", 1);
+        // Bottom shoulder
+        vis.svg.insert("rect", ":first-child")
+            .attr("class", "road-shoulder-bottom")
+            .attr("x", 0)
+            .attr("y", vis.height + 4)
+            .attr("width", vis.width)
+            .attr("height", 8)
+            .attr("fill", "#92C7B9") // Light mint green
+            .attr("opacity", 1);
+        
+        // Create/update x-axis with same scale as bars (ticks move with bars)
+        vis.xAxis = d3.axisTop(vis.xScale)
+            .ticks(5)
+            .tickFormat(d3.format("d"));
+        
+        // Select or create x-axis group
+        let xAxisGroup = vis.svg.selectAll(".x-axis").data([0]);
+        
+        const xAxisGroupEnter = xAxisGroup.enter()
+            .append("g")
+            .attr("class", "x-axis")
+            .attr("transform", "translate(0, 0)");
+        
+        xAxisGroup = xAxisGroupEnter.merge(xAxisGroup);
+        
+        // Store previous tick positions before updating
+        const previousTickPositions = new Map();
+        xAxisGroup.selectAll(".tick").each(function(d) {
+            const transform = d3.select(this).attr("transform");
+            if (transform) {
+                const match = transform.match(/translate\(([^,]+),/);
+                if (match) {
+                    previousTickPositions.set(d, parseFloat(match[1]));
+                }
+            }
+        });
+        
+        // Call axis to create/update ticks (this will position them at new locations)
+        xAxisGroup.call(vis.xAxis);
+        
+        // Style x-axis immediately to ensure visibility
+        xAxisGroup.selectAll(".tick line")
+            .attr("stroke", "#999")
+            .attr("stroke-width", 1)
+            .attr("y1", 0)
+            .attr("y2", vis.height);
+        
+        xAxisGroup.selectAll(".tick text")
+            .attr("fill", "#333")
+            .attr("font-size", "12px")
+            .attr("font-weight", "500")
+            .attr("font-family", "Arial, sans-serif")
+            .attr("dy", "-5px");
+        
+        xAxisGroup.selectAll(".domain")
+            .attr("stroke", "#999")
+            .attr("stroke-width", 1);
+        
+        // Sort ticks in DOM order by their value (ascending)
+        // This ensures they animate in the correct order
+        xAxisGroup.selectAll(".tick")
+            .sort((a, b) => a - b);
+        
+        // Reset existing ticks to previous positions for smooth transition
+        // New ticks should only appear if they're within the current scale domain
+        xAxisGroup.selectAll(".tick").each(function(d) {
+            const previousX = previousTickPositions.get(d);
+            const currentX = vis.xScale(d);
+            const isWithinDomain = d >= 0 && d <= vis.xScale.domain()[1];
+            
+            if (previousX !== undefined) {
+                // Existing tick: reset to previous position for smooth transition
+                d3.select(this).attr("transform", `translate(${previousX},0)`);
+                d3.select(this).style("opacity", 1); // Ensure it's visible
+            } else if (isWithinDomain) {
+                // New tick within domain: start from right edge and animate in
+                d3.select(this).attr("transform", `translate(${vis.width},0)`);
+                d3.select(this).style("opacity", 1);
+            } else {
+                // New tick outside domain: hide it
+                d3.select(this).style("opacity", 0);
+            }
+        });
+        
+        // Now transition tick positions smoothly with animation
+        // All ticks animate at the same time (no delay)
+        xAxisGroup.selectAll(".tick")
+            .filter(function(d) {
+                // Only animate ticks that are within the domain
+                return d >= 0 && d <= vis.xScale.domain()[1];
+            })
+            .transition()
+            .duration(1000)
+            .ease(d3.easeCubicInOut)
+            .style("opacity", 1)
+            .attr("transform", d => `translate(${vis.xScale(d)},0)`);
+        
+        // Hide ticks that are outside the domain
+        xAxisGroup.selectAll(".tick")
+            .filter(function(d) {
+                return d < 0 || d > vis.xScale.domain()[1];
+            })
+            .transition()
+            .duration(1000)
+            .style("opacity", 0);
+        
+        // Transition domain line smoothly
+        xAxisGroup.selectAll(".domain")
+            .transition()
+            .duration(1000)
+            .ease(d3.easeCubicInOut)
+            .attr("d", `M${vis.xScale.range()[0]},0V0H${vis.xScale.range()[1]}V0`);
+        
+        // Ensure tick lines stay extended during transition
+        xAxisGroup.selectAll(".tick line")
+            .transition()
+            .duration(1000)
+            .ease(d3.easeCubicInOut)
+            .attr("y2", vis.height);
         
         // Clear any existing stick figures to prevent duplicates
         vis.svg.selectAll(".bar-icon").remove();
@@ -600,8 +1008,8 @@ class BarChart {
 
         barsMerged
             .transition()
-            .duration(800)
-            .ease(d3.easeLinear)
+            .duration(1000)
+            .ease(d3.easeCubicInOut)
             .attr("width", d => vis.xScale(d.count))
             .attr("y", (d, i) => vis.yScale(i));
 
@@ -627,19 +1035,31 @@ class BarChart {
                 // Calculate tooltip data
                 const tooltipData = vis.calculateTooltipData(d.pedAct);
 
-                // Show tooltip
+                // Clear existing tooltip content first
+                tooltip.html("");
+                
+                // Position tooltip temporarily to get dimensions
                 tooltip
-                    .style("opacity", 1)
+                    .style("opacity", 0)
                     .style("left", `${event.pageX + 15}px`)
                     .style("top", `${event.pageY - 20}px`);
-
-                // Clear existing tooltip content
-                tooltip.html("");
                 
                 // Build tooltip content
                 tooltip.append('div')
                     .attr('class', 'tooltip-title')
                     .text(tooltipData.pedAct);
+                
+                // Cumulative total
+                const itemCumulative = tooltip.append('div')
+                    .attr('class', 'tooltip-item');
+                
+                itemCumulative.append('span')
+                    .attr('class', 'tooltip-label')
+                    .text('Cumulative Total:');
+                
+                itemCumulative.append('span')
+                    .attr('class', 'tooltip-value')
+                    .text(tooltipData.cumulativeCount.toLocaleString());
                 
                 // Current year total
                 const item1 = tooltip.append('div')
@@ -751,6 +1171,49 @@ class BarChart {
                     });
                 }
                 
+                // Get tooltip dimensions after content is added
+                const tooltipNode = tooltip.node();
+                const tooltipRect = tooltipNode.getBoundingClientRect();
+                const tooltipWidth = tooltipRect.width;
+                const tooltipHeight = tooltipRect.height;
+                
+                // Calculate viewport boundaries
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const padding = 10; // Padding from edges
+                
+                // Calculate optimal position
+                let left = event.pageX + 15;
+                let top = event.pageY - 20;
+                
+                // Check right edge overflow
+                if (left + tooltipWidth + padding > viewportWidth) {
+                    // Position to the left of cursor instead
+                    left = event.pageX - tooltipWidth - 15;
+                }
+                
+                // Check left edge overflow
+                if (left < padding) {
+                    left = padding;
+                }
+                
+                // Check bottom edge overflow
+                if (top + tooltipHeight + padding > viewportHeight) {
+                    // Position above cursor instead
+                    top = event.pageY - tooltipHeight - 20;
+                }
+                
+                // Check top edge overflow
+                if (top < padding) {
+                    top = padding;
+                }
+                
+                // Apply final position and show
+                tooltip
+                    .style("left", `${left}px`)
+                    .style("top", `${top}px`)
+                    .style("opacity", 1);
+                
                 // Highlight the bar
                 d3.select(this)
                     .attr("stroke", "#f3d8d4ff")
@@ -803,8 +1266,8 @@ class BarChart {
 
         labelsEnter.merge(labels)
             .transition()
-            .duration(800)
-            .ease(d3.easeLinear)
+            .duration(1000)
+            .ease(d3.easeCubicInOut)
             .style("opacity", 1)
             .attr("x", d => Math.max(vis.xScale(d.count) - 5, 5))
             .attr("text-anchor", "end")
@@ -821,29 +1284,34 @@ class BarChart {
 
         labels.exit().remove();
 
-        // Add legend labels at the far right of the chart area
+        // Add legend labels to the left of each bar (in the margin area)
         const legendLabels = vis.svg.selectAll(".legend-label")
             .data(vis.counts, d => d.pedAct);
 
         const legendLabelsEnter = legendLabels.enter().append("text")
             .attr("class", "legend-label")
-            .attr("x", vis.width - 10)
+            .attr("x", -15)
             .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
             .attr("text-anchor", "end")
             .attr("dy", "0.35em")
             .style("font-family", "Arial, sans-serif")
             .style("font-size", "12px")
-            .style("font-weight", "400")
-            .style("fill", "#C75B4A")
+            .style("font-weight", "500")
+            .style("fill", "#000")
+            .style("stroke", "none")
+            .style("stroke-width", 0)
             .style("opacity", 0)
             .text(d => d.pedAct);
 
         legendLabelsEnter.merge(legendLabels)
             .transition()
-            .duration(800)
-            .ease(d3.easeLinear)
+            .duration(1000)
+            .ease(d3.easeCubicInOut)
             .style("opacity", 1)
-            .attr("x", vis.width - 10)
+            .style("fill", "#000")
+            .style("stroke", "none")
+            .style("stroke-width", 0)
+            .attr("x", -15)
             .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
             .text(d => d.pedAct);
 
@@ -856,7 +1324,7 @@ class BarChart {
             vis.laneDividersCreated = true;
         }
 
-        // Add walking icons - position them closer to the numbers
+        // Add walking icons - position them at the end of each bar
         const emojiIcons = vis.svg.selectAll(".emoji-icon")
             .data(vis.counts, d => d.pedAct);
 
@@ -872,10 +1340,14 @@ class BarChart {
 
         emojiIconsEnter.merge(emojiIcons)
             .transition()
-            .duration(800)
-            .ease(d3.easeLinear)
+            .duration(1000)
+            .ease(d3.easeCubicInOut)
             .style("opacity", 1)
-            .attr("x", d => Math.max(vis.xScale(d.count) - 10, 50) + 15)
+            .attr("x", d => {
+                // Position at the end of the bar, accounting for bar width
+                const barWidth = vis.xScale(d.count);
+                return Math.max(barWidth + 15, 50);
+            })
             .attr("y", (d, i) => vis.yScale(i) + vis.yScale.bandwidth()/2)
             .text("🚶‍♀️");
 
