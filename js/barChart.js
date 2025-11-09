@@ -286,11 +286,19 @@ class BarChart {
                 maxYear = year;
             }
         }
+
+        // The below years and statistics were calculated within Tableau
+        let similarYear = 2008;
+        let peakYear = 2018;
+        let minYear = 2022;
         
         // Store highlights
         vis.yearHighlights = {
             maxYear: maxYear,
-            maxCount: maxCount
+            maxCount: maxCount,
+            similarYear: similarYear,
+            peakYear: peakYear,
+            minYear: minYear
         };
     }
 
@@ -313,6 +321,31 @@ class BarChart {
                 message: `This year had the most collisions with ${vis.yearHighlights.maxCount.toLocaleString()} total collisions.`
             });
             vis.lastHighlightYear = vis.currentYear;
+        }
+
+        // The below years and statistics were calculated on Tableau beforehand
+        if (vis.currentYear === vis.yearHighlights.similarYear) {
+            vis.showHighlightPopup({
+                year: vis.currentYear,
+                title: `Year Highlight: ${vis.currentYear}`,
+                message: `2008 recorded 194 collisions, the exact same number as 2007.`
+            });
+        }
+
+        if (vis.currentYear === vis.yearHighlights.peakYear) {
+            vis.showHighlightPopup({
+                year: vis.currentYear,
+                title: `Year Highlight: ${vis.currentYear}`,
+                message: `Collisions peaked at 217, the third highest on record, before starting a steady 4-year decline.`
+            });
+        }
+
+        if (vis.currentYear === vis.yearHighlights.minYear) {
+            vis.showHighlightPopup({
+                year: vis.currentYear,
+                title: `Year Highlight: ${vis.currentYear}`,
+                message: `Collisions hit a record low of 123 this year.`
+            });
         }
     }
 
