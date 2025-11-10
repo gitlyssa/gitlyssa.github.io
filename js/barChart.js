@@ -611,9 +611,9 @@ class BarChart {
         let vis = this;
         
         // Stop auto-play if it's running
-        if (vis.isPlaying) {
-            vis.stopPlay();
-        }
+        // if (vis.isPlaying) {
+        //     vis.stopPlay();
+        // }
         
         // Reset to initial year
         vis.currentYear = vis.initialYear;
