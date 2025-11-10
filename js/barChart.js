@@ -79,11 +79,15 @@ class BarChart {
             .range([
                 // Current colour palette
                 "#003f5c", "#2c4875", "#58508d", "#8a508f", "#bc5090",
-                "#de5a79", "#ff6361", "#ff8531", "#ffac59", "#ffd380",
+                "#de5a79", "#ff6361", "#ff8531", "#ffac59", "#ffd380"
 
-                // Alternative colour palette
-                "#e36040", "#ec8151", "#f4a261", "#8ab17d", "#2a9d8f",
-                 "#2a9d8f", "#287271", "#264653", "#bc6b85", "#9576c9"
+                // // Alternative colour palette
+                // "#e36040", "#ec8151", "#f4a261", "#8ab17d", "#2a9d8f",
+                //  "#2a9d8f", "#287271", "#264653", "#bc6b85", "#9576c9",
+
+                // Alternative colour palette 2
+                // "#ff595e", "#ff924c", "#ffca3a", "#c5ca30", "#8ac926",
+                // "#52a675", "#1982c4", "#4267ac", "#6a4c93", "#b5a6c9"
             ]);
 
         vis.updateVis();
