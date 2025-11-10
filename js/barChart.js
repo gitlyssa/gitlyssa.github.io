@@ -363,12 +363,12 @@ class BarChart {
         const roadRect = roadContainer ? roadContainer.getBoundingClientRect() : null;
         
         // Create pop-up with glass-like effect
-        const popup = d3.select('body')
-            .append('div')
-            .attr('class', 'year-highlight-popup')
-            .style('position', 'fixed')
-            .style('bottom', roadRect ? `${window.innerHeight - roadRect.bottom - 65}px` : '-65px')
-            .style('right', roadRect ? `${window.innerWidth - roadRect.right + 30}px` : '30px')
+            const popup = d3.select('body')
+                .append('div')
+                .attr('class', 'year-highlight-popup')
+                .style('position', 'fixed')
+                .style('bottom', roadRect ? `${window.innerHeight - roadRect.bottom + 40}px` : '-15px')
+                .style('right', roadRect ? `${window.innerWidth - roadRect.right + 30}px` : '30px')
             .style('background', '#fff')
             .style('padding', '20px 30px')
             .style('border-radius', '8px')
@@ -569,7 +569,7 @@ class BarChart {
             if (timelineMarker) {
                 timelineMarker.style.left = `${((vis.currentYear - 2006) / (2023 - 2006)) * 100}%`;
             }
-        }, 1000); // 1 second between year changes
+        }, 2000); // 1 second between year changes
     }
 
     /*
@@ -1385,6 +1385,28 @@ class BarChart {
             .text("🚶‍♀️");
 
         emojiIcons.exit().remove();
+
+        // Add large faint current-year watermark in the bottom-right of the chart
+        // It should update position and text when the chart updates or resizes
+        const fontSize = Math.max(36, Math.round(vis.height * 0.45));
+        const bigYear = vis.svg.selectAll('.big-year-label').data([vis.currentYear]);
+
+        const bigYearEnter = bigYear.enter().append('text')
+            .attr('class', 'big-year-label')
+            .attr('text-anchor', 'end')
+            .style('font-family', 'Playfair Display, serif')
+            .style('font-weight', '1000')
+            .style('fill', '#bfbfbf')
+            .style('fill-opacity', 0.7)
+            .style('pointer-events', 'none');
+
+        bigYearEnter.merge(bigYear)
+            .text(d => d)
+            .attr('x', vis.width - 8)
+            .attr('y', vis.height - 25)
+            .style('font-size', fontSize + 'px');
+
+        bigYear.exit().remove();
     }
 }
 
