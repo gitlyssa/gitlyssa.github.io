@@ -44,7 +44,7 @@ class BarChart {
         vis.setupDropdownFilters();
 
         // Margins and dimensions
-		vis.margin = {top: 5, right: 5, bottom: 30, left: 150};
+        vis.margin = {top: 5, right: 5, bottom: 30, left: 110};
 		vis.width = document.getElementById(vis.parentElement).getBoundingClientRect().width - vis.margin.left - vis.margin.right;
 		vis.height = document.getElementById(vis.parentElement).getBoundingClientRect().height - vis.margin.top - vis.margin.bottom;
 
@@ -367,7 +367,7 @@ class BarChart {
             .append('div')
             .attr('class', 'year-highlight-popup')
             .style('position', 'fixed')
-            .style('bottom', roadRect ? `${window.innerHeight - roadRect.bottom + 35}px` : '35px')
+            .style('bottom', roadRect ? `${window.innerHeight - roadRect.bottom - 65}px` : '-65px')
             .style('right', roadRect ? `${window.innerWidth - roadRect.right + 30}px` : '30px')
             .style('background', '#fff')
             .style('padding', '20px 30px')
