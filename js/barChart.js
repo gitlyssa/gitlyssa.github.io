@@ -77,10 +77,13 @@ class BarChart {
         vis.colorScale = d3.scaleOrdinal()
             .domain(vis.counts.map(d => d.pedAct))
             .range([
-                "#C75B4A", "#66B2B2", "#D9C06B", "#8B4513", "#4A8B6B",
-                "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#B07AA1",
-                "#FF9DA7", "#9C755F", "#BAB0AC", "#8DD3C7", "#FDB462",
-                "#B3DE69", "#FCCDE5", "#80B1D3", "#BC80BD", "#4E79A7"
+                // Current colour palette
+                "#003f5c", "#2c4875", "#58508d", "#8a508f", "#bc5090",
+                "#de5a79", "#ff6361", "#ff8531", "#ffac59", "#ffd380",
+
+                // Alternative colour palette
+                "#e36040", "#ec8151", "#f4a261", "#8ab17d", "#2a9d8f",
+                 "#2a9d8f", "#287271", "#264653", "#bc6b85", "#9576c9"
             ]);
 
         vis.updateVis();
