@@ -70,7 +70,7 @@ body {
 /* Description */
 .description-section {
     margin-top: 30px;
-    margin-bottom: -70px;
+    margin-bottom: -15px;
     max-width: 150vh;
 }
 
@@ -82,6 +82,7 @@ body {
     align-items: center;
     margin-left: auto;
     margin-right: 45px;
+    margin-top: 30px;
 }
 
 /* Play Button */
@@ -185,6 +186,20 @@ body {
   min-height: auto;
 }
 
+/* Row to hold filters and the control buttons on the same horizontal line */
+.controls-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 16px;
+}
+
+
+.controls-row .control-buttons {
+        margin-top: 0;
+}
+
 /* Road Container */
 .road-container {
     flex: 0 0 auto;
@@ -194,10 +209,10 @@ body {
     position: relative;
     background-color: transparent; /* Road background will be in SVG */
     border-radius: 0;
-    padding: 0 20px 0 150px;
+    padding: 0 20px 0 110px;
     margin-right: 0px;
     margin-top: 12px; /* Space for top green shoulder + white tab */
-    margin-bottom: 12px; /* Space for bottom green shoulder + white tab */
+    margin-bottom: 10px;
     overflow: visible;
 }
 
@@ -343,8 +358,7 @@ body {
     position: relative;
     width: 100%;
     height: 70px;
-    margin-top: -25px;
-    margin-bottom: 0px;
+    margin-top: 75px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -450,6 +464,7 @@ body {
 #bar-chart {
     width: 100%;
     height: 100%;
+    min-height: 375px;
 }
 
 #bar-chart svg {

@@ -44,7 +44,7 @@ class BarChart {
         vis.setupDropdownFilters();
 
         // Margins and dimensions
-		vis.margin = {top: 5, right: 5, bottom: 30, left: 150};
+        vis.margin = {top: 5, right: 5, bottom: 30, left: 110};
 		vis.width = document.getElementById(vis.parentElement).getBoundingClientRect().width - vis.margin.left - vis.margin.right;
 		vis.height = document.getElementById(vis.parentElement).getBoundingClientRect().height - vis.margin.top - vis.margin.bottom;
 
@@ -77,10 +77,17 @@ class BarChart {
         vis.colorScale = d3.scaleOrdinal()
             .domain(vis.counts.map(d => d.pedAct))
             .range([
-                "#C75B4A", "#66B2B2", "#D9C06B", "#8B4513", "#4A8B6B",
-                "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#B07AA1",
-                "#FF9DA7", "#9C755F", "#BAB0AC", "#8DD3C7", "#FDB462",
-                "#B3DE69", "#FCCDE5", "#80B1D3", "#BC80BD", "#4E79A7"
+                // Current colour palette
+                "#003f5c", "#2c4875", "#58508d", "#8a508f", "#bc5090",
+                "#de5a79", "#ff6361", "#ff8531", "#ffac59", "#ffd380"
+
+                // // Alternative colour palette
+                // "#e36040", "#ec8151", "#f4a261", "#8ab17d", "#2a9d8f",
+                //  "#2a9d8f", "#287271", "#264653", "#bc6b85", "#9576c9",
+
+                // Alternative colour palette 2
+                // "#ff595e", "#ff924c", "#ffca3a", "#c5ca30", "#8ac926",
+                // "#52a675", "#1982c4", "#4267ac", "#6a4c93", "#b5a6c9"
             ]);
 
         vis.updateVis();
@@ -286,11 +293,19 @@ class BarChart {
                 maxYear = year;
             }
         }
+
+        // The below years and statistics were calculated within Tableau
+        let similarYear = 2008;
+        let peakYear = 2018;
+        let minYear = 2022;
         
         // Store highlights
         vis.yearHighlights = {
             maxYear: maxYear,
-            maxCount: maxCount
+            maxCount: maxCount,
+            similarYear: similarYear,
+            peakYear: peakYear,
+            minYear: minYear
         };
     }
 
@@ -314,6 +329,31 @@ class BarChart {
             });
             vis.lastHighlightYear = vis.currentYear;
         }
+
+        // The below years and statistics were calculated on Tableau beforehand
+        if (vis.currentYear === vis.yearHighlights.similarYear) {
+            vis.showHighlightPopup({
+                year: vis.currentYear,
+                title: `Year Highlight: ${vis.currentYear}`,
+                message: `2008 recorded 194 collisions, the exact same number as 2007.`
+            });
+        }
+
+        if (vis.currentYear === vis.yearHighlights.peakYear) {
+            vis.showHighlightPopup({
+                year: vis.currentYear,
+                title: `Year Highlight: ${vis.currentYear}`,
+                message: `Collisions peaked at 217, the third highest on record, before starting a steady 4-year decline.`
+            });
+        }
+
+        if (vis.currentYear === vis.yearHighlights.minYear) {
+            vis.showHighlightPopup({
+                year: vis.currentYear,
+                title: `Year Highlight: ${vis.currentYear}`,
+                message: `Collisions hit a record low of 123 this year.`
+            });
+        }
     }
 
     /*
@@ -330,12 +370,12 @@ class BarChart {
         const roadRect = roadContainer ? roadContainer.getBoundingClientRect() : null;
         
         // Create pop-up with glass-like effect
-        const popup = d3.select('body')
-            .append('div')
-            .attr('class', 'year-highlight-popup')
-            .style('position', 'fixed')
-            .style('bottom', roadRect ? `${window.innerHeight - roadRect.bottom + 35}px` : '35px')
-            .style('right', roadRect ? `${window.innerWidth - roadRect.right + 30}px` : '30px')
+            const popup = d3.select('body')
+                .append('div')
+                .attr('class', 'year-highlight-popup')
+                .style('position', 'fixed')
+                .style('bottom', roadRect ? `${window.innerHeight - roadRect.bottom + 40}px` : '-15px')
+                .style('right', roadRect ? `${window.innerWidth - roadRect.right + 30}px` : '30px')
             .style('background', '#fff')
             .style('padding', '20px 30px')
             .style('border-radius', '8px')
@@ -411,7 +451,7 @@ class BarChart {
                     .style('opacity', 0)
                     .remove();
             }
-        }, 5000);
+        }, 4000);
     }
 
     /* Timeline related methods --------------------------------------------------------------------------------- */
@@ -536,7 +576,7 @@ class BarChart {
             if (timelineMarker) {
                 timelineMarker.style.left = `${((vis.currentYear - 2006) / (2023 - 2006)) * 100}%`;
             }
-        }, 1000); // 1 second between year changes
+        }, 2000); // 1 second between year changes
     }
 
     /*
@@ -578,9 +618,9 @@ class BarChart {
         let vis = this;
         
         // Stop auto-play if it's running
-        if (vis.isPlaying) {
-            vis.stopPlay();
-        }
+        // if (vis.isPlaying) {
+        //     vis.stopPlay();
+        // }
         
         // Reset to initial year
         vis.currentYear = vis.initialYear;
@@ -1352,6 +1392,28 @@ class BarChart {
             .text("🚶‍♀️");
 
         emojiIcons.exit().remove();
+
+        // Add large faint current-year watermark in the bottom-right of the chart
+        // It should update position and text when the chart updates or resizes
+        const fontSize = Math.max(36, Math.round(vis.height * 0.45));
+        const bigYear = vis.svg.selectAll('.big-year-label').data([vis.currentYear]);
+
+        const bigYearEnter = bigYear.enter().append('text')
+            .attr('class', 'big-year-label')
+            .attr('text-anchor', 'end')
+            .style('font-family', 'Playfair Display, serif')
+            .style('font-weight', '1000')
+            .style('fill', '#bfbfbf')
+            .style('fill-opacity', 0.7)
+            .style('pointer-events', 'none');
+
+        bigYearEnter.merge(bigYear)
+            .text(d => d)
+            .attr('x', vis.width - 8)
+            .attr('y', vis.height - 25)
+            .style('font-size', fontSize + 'px');
+
+        bigYear.exit().remove();
     }
 }
 

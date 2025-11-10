@@ -27,33 +27,18 @@
 
             <!-- Description -->
             <div class="description-section">
-                There is no shortage of delays that occur during our daily commutes—no doubt due to construction, poor road infrastructure, limited public transportation options, and traffic collisions, the most quantifiable of all these reasons. Pedestrians make up the second highest number of fatal accidents in Toronto; which is concerning as it is marketed as a walkable city. What conditions could cause this high volume of pedestrian collisions?<br><br>
+                There is no shortage of delays that occur during our daily commutes—no doubt due to construction, poor road infrastructure, limited public transportation options, and traffic collisions, the most quantifiable of all these reasons. Pedestrians make up the second highest number of fatal accidents in Toronto; which is concerning as Toronto is marketed as a walkable city. What conditions could cause this high volume of pedestrian collisions?<br><br>
                 
                 The chart below displays the number of pedestrians involved in Toronto traffic collisions and their actions moments before the collision from 2006 to 2023. Use the filters below to toggle between different collision severities, pedestrian actions, and districts. Use the time slider at the bottom and the buttons on the right to check the number of collisions across different years. Hover over each bar for more detailed information on each pedestrian action.
             </div>
         </div>
 
-
-        <!-- Play and Restart Buttons -->
-        <div class="control-buttons">
-            <div class="play-button">
-                <div class="play-triangle"></div>
-            </div>
-            <div class="restart-button">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <!-- Used ChatGPT to generate the path to create a restart button icon using the prompt:
-                     "Generate code to draw a small restart icon using D3 and SVG" -->
-                    <path d="M17.5 2.5V7.5H12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M2.5 10C2.5 14.1421 5.85786 17.5 10 17.5C14.1421 17.5 17.5 14.1421 17.5 10C17.5 5.85786 14.1421 2.5 10 2.5C7.64367 2.5 5.50732 3.55357 4.0625 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-        </div>
-
-
         <!-- Main Visualization Area -->
         <div class="visualization-area">
-        <!-- Filter tiles -->
-                <div class="filter-bar" id="filter-bar">
+            <!-- Controls row: filter bar + play/restart buttons -->
+            <div class="controls-row">
+            <!-- Filter tiles -->
+            <div class="filter-bar" id="filter-bar">
                     <div class="tile-group" data-group="severity">
                         <span class="tile-label">Severity</span>
                         <button class="tile active" data-value="all">All</button>
@@ -90,6 +75,21 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Play and Restart Buttons -->
+                <div class="control-buttons">
+                    <div class="play-button">
+                        <div class="play-triangle"></div>
+                    </div>
+                    <div class="restart-button">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M17.5 2.5V7.5H12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2.5 10C2.5 14.1421 5.85786 17.5 10 17.5C14.1421 17.5 17.5 14.1421 17.5 10C17.5 5.85786 14.1421 2.5 10 2.5C7.64367 2.5 5.50732 3.55357 4.0625 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
             <!-- Road Visualization -->
             <div class="road-container">
                 <div id="bar-chart"></div>
